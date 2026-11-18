@@ -1,0 +1,29 @@
+<Slide style={{ width: 1280, height: 720, padding: 60, background: '#0E1A2B', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+        <Text style={{ fontSize: 34, color: '#FFFFFF', fontWeight: 'bold' }}>行业痛点：没人知道错在哪一步</Text>
+        <Box style={{ width: 72, height: 2, background: '#F5A623' }} />
+    </Box>
+    <Box style={{ flexDirection: 'row', gap: 34, flex: 1 }}>
+        <Box style={{ width: 610, flexDirection: 'column', gap: 18 }}>
+            {[
+                { icon: 'user', t: '学生 · 反复错同一类题', d: '传统错题本只抄正确答案，不回答「我当时哪一步想错了」，于是一样的错误反复发生。' },
+                { icon: 'users', t: '教师 · 40 人无法逐一诊断', d: '一个班几十份作业，无法逐一定位每道错题的思维断点；想分层讲解，却缺少结构化的班级薄弱点数据。' },
+                { icon: 'times-circle', t: '现有工具 · 给答案不给诊断', d: '拍照搜题只给结果；大模型直接问答会编造知识点与练习，脱离大纲，教师不敢用于教学。' },
+            ].map((it, idx) => (
+                <Box key={idx} style={{ flexDirection: 'row', gap: 18, background: '#16243400', padding: 18, borderLeft: '3px solid #F5A623', flex: 1 }}>
+                    <FAIcon name={it.icon} style={{ fill: '#F5A623', width: 32, height: 32 }} />
+                    <Box style={{ flexDirection: 'column', gap: 8 }}>
+                        <Text style={{ fontSize: 21, color: '#FFFFFF', fontWeight: 'bold' }}>{it.t}</Text>
+                        <Text style={{ fontSize: 17, color: '#B9C6D6', lineHeight: 1.5 }}>{it.d}</Text>
+                    </Box>
+                </Box>
+            ))}
+        </Box>
+        <Box style={{ flex: 1, flexDirection: 'column', gap: 12 }}>
+            <Image src="assets/diagnosis.png" style={{ width: '100%', height: 380, objectFit: 'cover', borderRadius: 10 }} />
+            <Text style={{ fontSize: 16, color: '#93A1B5', lineHeight: 1.5 }}>
+                教学发生在出错的那一步，而不是最终的错误答案。
+            </Text>
+        </Box>
+    </Box>
+</Slide>

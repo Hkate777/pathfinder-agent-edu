@@ -1,0 +1,17 @@
+<Slide style={{ width: 1280, height: 720, padding: 0, position: 'relative', background: '#0E1A2B' }}>
+    <Image src="assets/cover.png" style={{ position: 'absolute', top: 0, left: 0, width: 1280, height: 720, objectFit: 'cover' }} />
+    <Box style={{ position: 'absolute', top: 0, left: 0, width: 1280, height: 720, background: 'linear-gradient(90deg, rgba(14,26,43,0.94) 0%, rgba(14,26,43,0.72) 46%, rgba(14,26,43,0.18) 100%)' }} />
+    <Box style={{ position: 'absolute', top: 92, left: 72, width: 700, flexDirection: 'column', gap: 22 }}>
+        <Text style={{ fontSize: 20, color: '#F5A623', fontWeight: 'bold', letterSpacing: 3 }}>PATHFINDER AI · 教育与文化创意赛道</Text>
+        <Text style={{ fontSize: 60, color: '#FFFFFF', fontWeight: 'bold', lineHeight: 1.14 }}>
+            每一个错题<br />都是一张学习地图
+        </Text>
+        <Text style={{ fontSize: 24, color: '#E8EDF4', lineHeight: 1.5 }}>
+            错题诊断与个性化复习智能体
+        </Text>
+        <Box style={{ width: 120, height: 2, background: '#F5A623', marginTop: 6 }} />
+        <Text style={{ fontSize: 18, color: '#93A1B5', lineHeight: 1.6, marginTop: 8 }}>
+            智賦香江 AI 智能體應用大賽 · Hong Kong AI Agent Challenge<br />团队 KK_garden
+        </Text>
+    </Box>
+</Slide>

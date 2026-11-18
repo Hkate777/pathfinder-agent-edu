@@ -1,0 +1,41 @@
+<Slide style={{ width: 1280, height: 720, padding: 60, background: '#0E1A2B', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+        <Text style={{ fontSize: 34, color: '#FFFFFF', fontWeight: 'bold' }}>项目基本信息</Text>
+        <Box style={{ width: 72, height: 2, background: '#F5A623' }} />
+    </Box>
+    <Box style={{ flexDirection: 'row', gap: 40, flex: 1 }}>
+        <Box style={{ width: 520, flexDirection: 'column', gap: 24 }}>
+            <Box style={{ flexDirection: 'column', gap: 10 }}>
+                <Text style={{ fontSize: 16, color: '#F5A623', fontWeight: 'bold', letterSpacing: 2 }}>项目名称</Text>
+                <Text style={{ fontSize: 40, color: '#FFFFFF', fontWeight: 'bold' }}>Pathfinder AI</Text>
+            </Box>
+            <Box style={{ flexDirection: 'column', gap: 10 }}>
+                <Text style={{ fontSize: 16, color: '#F5A623', fontWeight: 'bold', letterSpacing: 2 }}>一句话定位</Text>
+                <Text style={{ fontSize: 20, color: '#E8EDF4', lineHeight: 1.55 }}>
+                    学生拍下一道做错的题，AI 定位「哪一步思路断了」，从课程知识图谱取回知识点与分级练习，生成 7 天个性化复习路径。
+                </Text>
+            </Box>
+            <Box style={{ background: '#1B2B40', borderRadius: 10, padding: 22, borderLeft: '3px solid #F5A623' }}>
+                <Text style={{ fontSize: 22, color: '#F5A623', fontWeight: 'bold' }}>不是解题器，是诊断器</Text>
+                <Text style={{ fontSize: 17, color: '#93A1B5', lineHeight: 1.5, marginTop: 8 }}>
+                    答案错了不重要，重要的是定位推理在哪一步断裂——那才是教学发生的地方。
+                </Text>
+            </Box>
+        </Box>
+        <Box style={{ flex: 1, flexDirection: 'column', gap: 14 }}>
+            <Text style={{ fontSize: 16, color: '#F5A623', fontWeight: 'bold', letterSpacing: 2 }}>团队组成与核心分工（≤5 人）</Text>
+            {[
+                ['教育产品 / 场景', '知识体系设计 · 教师调研 · 试点对接'],
+                ['AI 工程师', '诊断管线 · 知识图谱检索 · 可插拔模型层'],
+                ['全栈 / 交互', '师生双端界面 · 可视化 · 部署'],
+                ['数据与评估', '样本标注 · 评估脚本 · 指标定义'],
+                ['指导老师（ optional ）', '教学法与合规把关，不计入 5 人上限'],
+            ].map((r, idx) => (
+                <Box key={idx} style={{ flexDirection: 'row', gap: 16, paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #1B2B40' }}>
+                    <Text style={{ fontSize: 18, color: '#F5A623', fontWeight: 'bold', width: 190 }}>{r[0]}</Text>
+                    <Text style={{ fontSize: 17, color: '#E8EDF4', flex: 1, lineHeight: 1.45 }}>{r[1]}</Text>
+                </Box>
+            ))}
+        </Box>
+    </Box>
+</Slide>

@@ -1,0 +1,27 @@
+<Slide style={{ width: 1280, height: 720, padding: 60, background: '#0E1A2B', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column', gap: 10, marginBottom: 26 }}>
+        <Text style={{ fontSize: 34, color: '#FFFFFF', fontWeight: 'bold' }}>四阶段落地路径</Text>
+        <Box style={{ width: 72, height: 2, background: '#F5A623' }} />
+    </Box>
+    <Box style={{ position: 'relative', flex: 1 }}>
+        <Box style={{ position: 'absolute', top: 46, left: 40, right: 40, height: 2, background: '#1B2B40' }} />
+        <Box style={{ flexDirection: 'row', gap: 20, height: '100%' }}>
+            {[
+                ['01', 'MVP 已建成', '全链路管线 · 10 节点知识库 · 23 项测试 · 5 份 trace'],
+                ['02', '真实模型评测', '100 张照片解析准确率 · 教师标注 Cohen’s κ 一致性'],
+                ['03', '200 人试点', '实验班 vs 对照班，主终点 14 天重复错误率 + 教师工时'],
+                ['04', '本地化与商业化', '对接香港 DSE / 本地课程 · 中英双语 · 平台化与孵化'],
+            ].map((it, idx) => (
+                <Box key={idx} style={{ flex: 1, flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                    <Box style={{ width: 92, height: 92, borderRadius: 46, background: '#F5A623', justifyContent: 'center', alignItems: 'center', zIndex: 1 }}>
+                        <Text style={{ fontSize: 34, color: '#0E1A2B', fontWeight: 'bold' }}>{it[0]}</Text>
+                    </Box>
+                    <Box style={{ flexDirection: 'column', gap: 12, flex: 1 }}>
+                        <Text style={{ fontSize: 21, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' }}>{it[1]}</Text>
+                        <Text style={{ fontSize: 15, color: '#B9C6D6', lineHeight: 1.55, textAlign: 'center' }}>{it[2]}</Text>
+                    </Box>
+                </Box>
+            ))}
+        </Box>
+    </Box>
+</Slide>

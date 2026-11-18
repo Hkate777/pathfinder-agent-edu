@@ -1,0 +1,22 @@
+<Slide style={{ width: 1280, height: 720, padding: 60, background: '#0E1A2B', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column', gap: 8, marginBottom: 30 }}>
+        <Text style={{ fontSize: 44, color: '#FFFFFF', fontWeight: 'bold' }}>目录</Text>
+        <Box style={{ width: 80, height: 2, background: '#F5A623' }} />
+    </Box>
+    <Box style={{ flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+        {[
+            { no: '01', t: '项目与痛点', d: '项目定位 · 团队分工 · 三类行业痛点' },
+            { no: '02', t: '方案与技术', d: '六步工作流 · 断点诊断案例 · 创新与安全' },
+            { no: '03', t: '成果与价值', d: '核心指标 · 落地路径 · 评审标准对照' },
+            { no: '04', t: '佐证与声明', d: '原创性 · 资源使用 · 可复现材料' },
+        ].map((it, idx) => (
+            <Box key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 36, paddingTop: 22, paddingBottom: 22, borderBottom: '1px solid #1B2B40' }}>
+                <Text style={{ fontSize: 44, color: '#F5A623', fontWeight: 'bold', width: 96 }}>{it.no}</Text>
+                <Box style={{ flexDirection: 'column', gap: 8 }}>
+                    <Text style={{ fontSize: 28, color: '#FFFFFF', fontWeight: 'bold' }}>{it.t}</Text>
+                    <Text style={{ fontSize: 16, color: '#93A1B5' }}>{it.d}</Text>
+                </Box>
+            </Box>
+        ))}
+    </Box>
+</Slide>

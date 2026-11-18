@@ -1,0 +1,26 @@
+<Slide style={{ width: 1280, height: 720, padding: 60, background: '#0E1A2B', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+        <Text style={{ fontSize: 34, color: '#FFFFFF', fontWeight: 'bold' }}>对齐评审标准</Text>
+        <Box style={{ width: 72, height: 2, background: '#F5A623' }} />
+    </Box>
+    <Table
+        style={{ width: '100%', height: 480 }}
+        defaultTextStyle={{ fontSize: 17, textAlign: 'left', color: '#E8EDF4' }}
+        defaultCellStyle={{ border: { bottom: { width: 1, color: '#1B2B40' } } }}
+        cells={[
+            [
+                { text: '评审维度', textStyle: { bold: true, color: '#FFFFFF', fontSize: 18 }, cellStyle: { background: { color: '#1B2B40' } } },
+                { text: '权重', textStyle: { bold: true, color: '#FFFFFF', fontSize: 18 }, cellStyle: { background: { color: '#1B2B40' } } },
+                { text: '本项目支撑证据', textStyle: { bold: true, color: '#FFFFFF', fontSize: 18 }, cellStyle: { background: { color: '#1B2B40' } } },
+            ],
+            [
+                { text: '技术创新与安全', textStyle: { bold: true, color: '#F5A623' } },
+                { text: '30%', textStyle: { bold: true, color: '#F5A623', fontSize: 22 } },
+                '断点级诊断 · grounding 阈值 · 闭集分类 · 诚实弃答 · append-only 审计 · provider 标注',
+            ],
+            ['功能和用户体验', '25%', '上传→诊断→7 天路径→画像 · 师生双端 · 重拍/未映射/低置信三类诚实提示'],
+            ['应用场景适配度', '25%', '教育与文化创意赛道 · 大纲对齐知识图谱 · 间隔复习贴合作业订正与考前复盘'],
+            ['商业价值与社会影响', '20%', 'SDG 4 · 14 天重复错误率可量化 · 教师工时节省 · 学校/教培 SaaS 与孵化'],
+        ]}
+    />
+</Slide>

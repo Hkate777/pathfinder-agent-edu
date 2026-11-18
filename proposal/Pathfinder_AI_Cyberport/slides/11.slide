@@ -1,0 +1,42 @@
+<Slide style={{ width: 1280, height: 720, padding: 60, background: '#0E1A2B', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column', gap: 10, marginBottom: 22 }}>
+        <Text style={{ fontSize: 34, color: '#FFFFFF', fontWeight: 'bold' }}>原创、透明、可复现</Text>
+        <Box style={{ width: 72, height: 2, background: '#F5A623' }} />
+    </Box>
+    <Box style={{ flexDirection: 'row', gap: 34, flex: 1 }}>
+        <Box style={{ flex: 1, flexDirection: 'column', gap: 12 }}>
+            <Text style={{ fontSize: 16, color: '#F5A623', fontWeight: 'bold', letterSpacing: 1 }}>原创性与资源使用声明</Text>
+            {[
+                ['赛前已有', 'Pathfinder 管线、知识库、测试、trace（原仓库 kk-garden-pathfinder）'],
+                ['赛期新增', '教育赛道定位、香港课程本地化规划、计划书与本仓库'],
+                ['模型', '用户自备 OpenAI 兼容端点；无 key 时用自研规则基线并明确标注'],
+                ['数据', '7 个标注样本 + 自编 10 节点知识库；无学生真实个人数据'],
+                ['依赖', '核心代码原创；依赖 streamlit / requests / pillow / dotenv'],
+                ['合规', '密钥仅存本地 .env；照片本地存储，未经同意不用于训练'],
+            ].map((r, idx) => (
+                <Box key={idx} style={{ flexDirection: 'row', gap: 14, paddingTop: 9, paddingBottom: 9, borderBottom: '1px solid #1B2B40' }}>
+                    <Text style={{ fontSize: 16, color: '#F5A623', fontWeight: 'bold', width: 92 }}>{r[0]}</Text>
+                    <Text style={{ fontSize: 15, color: '#E8EDF4', flex: 1, lineHeight: 1.45 }}>{r[1]}</Text>
+                </Box>
+            ))}
+        </Box>
+        <Box style={{ width: 440, background: '#162434', borderRadius: 10, padding: 24, flexDirection: 'column', gap: 16 }}>
+            <Text style={{ fontSize: 18, color: '#F5A623', fontWeight: 'bold' }}>技术佐证材料</Text>
+            {[
+                ['file-text', 'traces/', '3 条运行 + 2 份评估报告'],
+                ['check-circle', 'tests/test_pure.py', '23 项离线测试，零 API 消耗'],
+                ['file', 'samples/', '7 个带教师标注的样本'],
+                ['clipboard', 'AGENTS.md', '开发规范与 7 条不可逾越线'],
+                ['link', 'GitHub 仓库', '可运行代码 · 含测试与 trace'],
+            ].map((it, idx) => (
+                <Box key={idx} style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+                    <FAIcon name={it[0]} style={{ fill: '#F5A623', width: 24, height: 24 }} />
+                    <Box>
+                        <Text style={{ fontSize: 16, color: '#FFFFFF', fontWeight: 'bold' }}>{it[1]}</Text>
+                        <Text style={{ fontSize: 14, color: '#93A1B5' }}>{it[2]}</Text>
+                    </Box>
+                </Box>
+            ))}
+        </Box>
+    </Box>
+</Slide>

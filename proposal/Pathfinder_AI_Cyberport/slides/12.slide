@@ -1,0 +1,16 @@
+<Slide style={{ width: 1280, height: 720, padding: 0, position: 'relative', background: '#0A1421' }}>
+    <Box style={{ position: 'absolute', top: 0, right: 0, width: 620, height: 720, background: 'radial-gradient(circle at 70% 50%, rgba(245,166,35,0.16) 0%, rgba(14,26,43,0) 65%)' }} />
+    <Box style={{ position: 'absolute', top: 0, left: 0, width: 8, height: 720, background: '#F5A623' }} />
+    <Box style={{ position: 'relative', padding: 80, flexDirection: 'column', justifyContent: 'center', height: 720, gap: 26 }}>
+        <Text style={{ fontSize: 18, color: '#F5A623', fontWeight: 'bold', letterSpacing: 3 }}>PATHFINDER AI · KK_garden</Text>
+        <Text style={{ fontSize: 46, color: '#FFFFFF', fontWeight: 'bold', lineHeight: 1.35, maxWidth: 940 }}>
+            读不清就重拍，匹配不到就如实说。<br />一个自信的错误答案，<br />比没有答案更伤害学生。
+        </Text>
+        <Box style={{ width: 96, height: 2, background: '#F5A623', marginTop: 6 }} />
+        <Box style={{ flexDirection: 'column', gap: 10, marginTop: 10 }}>
+            <Text style={{ fontSize: 18, color: '#E8EDF4' }}>代码仓库：github.com/Hkate777/pathfinder-agent-edu</Text>
+            <Text style={{ fontSize: 18, color: '#E8EDF4' }}>赛道：教育与文化创意 · 智賦香江 AI 智能體應用大賽</Text>
+            <Text style={{ fontSize: 16, color: '#93A1B5' }}>提交邮箱：aiagent_contest@cyberport.hk</Text>
+        </Box>
+    </Box>
+</Slide>
