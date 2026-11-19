@@ -129,7 +129,10 @@ class Config:
 
     @property
     def configured(self) -> bool:
-        return bool(self.api_key and self.base_url and self.text_model)
+        # Grounding always calls provider.embed in online mode, so a missing
+        # embedding model must fail fast *before* the (billed) diagnosis call,
+        # not silently fall back or crash mid-pipeline.
+        return bool(self.api_key and self.base_url and self.text_model and self.embedding_model)
 
 
 def _strip_json_fences(text: str) -> str:

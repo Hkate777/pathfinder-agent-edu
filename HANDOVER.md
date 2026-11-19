@@ -6,6 +6,23 @@
 
 ---
 
+## 0A. 阶段 1 首批落地记录（2026-11-19，「方案执行落地」）
+
+依据 `ADOPTION_NOTES.md` 采纳决策 + 方案 v1.1，Provider 路线**决策为云 API 优先**（跨境 DPA 义务见 `.env.example`；Ollama 为合规升级路径）。本批交付（62/62 测试通过）：
+
+| # | 交付 | 文件 | 验证 |
+|---|---|---|---|
+| 1 | **SymPy 步骤级判分**（verdict: pass/fail/**unknown 不猜测**；同解验证/恒等检查/Unicode 归一/散文词剔除/无约束场景诚实化） | `verifier.py` + CLI | 教师标注对照：4 个代数样本断点**全中**；che/phy 按声明范围 unknown |
+| 2 | **评测数据分层脚手架**（dev/challenge/held-out 契约、冻结指纹、标注指南 κ 模板） | `evaluation/README.md`、`held_out.template.json`、`annotation_guide.md` | — |
+| 3 | **数据隔离门禁**（dev∩held_out=∅ + KB 泄漏检查 + 冻结保护，可作 CI 门禁） | `scripts/check_data_isolation.py` | 5 项测试含篡改检测 |
+| 4 | **数据集 ingest**（GSM8K→项目格式；许可强制归档；默认 dry-run；`knowledge_point=null` 待标注语义） | `scripts/ingest_datasets.py` | 冒烟：2 可用/1 跳过 |
+| 5 | **Config fail-fast 修复**：在线模式 `configured` 必须含 `embedding_model`（审评 P0-10，防已计费后 grounding 崩） | `llm.py` | 现有测试兼容 |
+| 6 | 依赖与配置记录：`requirements.txt` + sympy；`.env.example` 记录云 API 决策与 DPA 义务 | 配置 | — |
+
+**未做（待资源/授权）**：held_out 实例填充与教师 κ 研究、bge-m3/PaddleOCR 接入、云 API 真实模型评测、RBAC/同意门。gate 在 `held_out.json` 创建前为 inactive（exit 0），创建后自动生效。
+
+---
+
 ## 0. 阶段 0 执行记录（2026-11-19 下午）
 
 依据 `ASSESSMENT_AND_ROADMAP.md` 完成阶段 0 止血，代码改动集中在 4 个 UI P0 + 1 个评测缺口：

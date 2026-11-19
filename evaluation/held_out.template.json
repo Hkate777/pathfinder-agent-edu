@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "name": "held-out freeze template",
+    "version": "0.1",
+    "how_to_freeze": "复制本文件为 held_out.json，填入真实案例后运行: python scripts/check_data_isolation.py --freeze",
+    "requirements": {
+      "min_cases": 100,
+      "must_cover": [
+        "correct answers (no error)",
+        "multi-error workings",
+        "non-first-step breakpoints",
+        "ambiguous or insufficient questions",
+        "multiple subjects and grades",
+        "handwriting / OCR variants",
+        "simplified and traditional Chinese"
+      ],
+      "provenance": "真实课堂脱敏转录；不含可识别个人信息；来源与同意记录另存（不入库）"
+    }
+  },
+  "cases": [
+    {
+      "id": "ho_example_001",
+      "question": "（题目原文，脱敏）",
+      "steps": ["学生步骤 1", "学生步骤 2"],
+      "parse_status": "ok",
+      "source_note": "仅内部记录来源批次，不含学生身份",
+      "expected": {
+        "kind": "error",
+        "error_type": "conceptual",
+        "knowledge_point": "ALG-7.3",
+        "broken_step_contains": "（须恰好唯一匹配一步的片段，或用 step_number）"
+      }
+    }
+  ]
+}
