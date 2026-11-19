@@ -52,7 +52,7 @@
 | 10 | `teacher_kp_override` + 复核指定 KP；`effective_kp` 贯通画像/热力图/排程 | `app.py`、`diagnose.py`、`store.py` | `test_app_p0.py::test_d`、`test_workflows.py` |
 | 11 | 补 12 例独立挑战集 `--set challenge`；三套评测全可跑 | `evaluation/classroom_challenge.json` | `eval.py --set challenge` |
 
-**验证**：44/44 测试通过；三套评测全跑通（challenge 暴露泛化差距：错误类型 6/8=75%、知识点 7/8=88%、路由 10/12=83%）。文档数字统一为 44 测试 / 7 trace / 6+ 评测口径。改动已提交在 `dev/local-run` 并 **fast-forward 合入 `main`**（`a619c24`）。
+**验证**：44/44 测试通过；三套评测全跑通（challenge 暴露泛化差距：错误类型 6/8=75%、知识点 7/8=88%、路由 10/12=83%）。文档数字统一为 44 测试 / 7 trace / 6+ 评测口径。改动已提交在 `dev/local-run` 并 **fast-forward 合入 `main`**（`a127220`）。
 
 ---
 
@@ -69,9 +69,9 @@ grounding 到课纲知识点、推送分级练习并生成 7 天间隔复习计�
 | 项目 | 状态 |
 |---|---|
 | 远程仓库 | `origin` → https://github.com/Hkate777/pathfinder-agent-edu.git |
-| **主干** | **`main` @ `a619c24`**（已 fast-forward 并入本批 7 个提交，含阶段 0/1、OpenCode Go 接入、本地语义检索、交接文档） |
+| **主干** | **`main` @ `a127220`**（已 fast-forward 并入本批 7 个提交，含阶段 0/1、OpenCode Go 接入、本地语义检索、交接文档） |
 | 历史基线 | `01f8de8` Align docs with Cyberport AI Agent Challenge（旧提交仍在历史中） |
-| 工作分支 | `dev/local-run` @ `a619c24`（与 main 同点，保留备查） |
+| 工作分支 | `dev/local-run` @ `a127220`（与 main 同点，保留备查） |
 | 工作区 | 干净（0 未提交项） |
 
 > ⚠️ **并行编辑说明（2026-11-19 12:45–13:09+）**：本仓库曾被另一会话在同一工作区大改（UI 重构 `ui.py`/`ui.css`/`.streamlit/`、新增 15 个测试、修复 `utcnow`、`eval.py` 重写为三套评测）。上述改动已全部随本批提交并入主干。面向队友的协作说明见 `TEAM_HANDOFF.md`（分支策略、分工、PR 清单）。

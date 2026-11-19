@@ -1,6 +1,6 @@
 # Pathfinder AI · 團隊交接說明（繁體）
 
-> 更新日期：2026-11-19 ｜ **主干 `main` 已含本批全部 7 个提交 @ `a619c24`**（由 `dev/local-run` fast-forward 并入，旧基线内容一行未丢）
+> 更新日期：2026-11-19 ｜ **主干 `main` 已含本批全部 7 个提交 @ `a127220`**（由 `dev/local-run` fast-forward 并入，旧基线内容一行未丢）
 > 本文件面向共同開發的隊友：說明目前做到哪裡、如何接手、協作規範、已知風險。
 > 專案原始說明見 `README.md`；本地執行環境見 `HANDOVER.md`；全面審評與路線圖見 `ASSESSMENT_AND_ROADMAP.md`。
 
@@ -28,8 +28,8 @@ Pathfinder AI 是「**診斷器而非解題器**」：學生拍錯題 → 定位
 ## 2. 分支策略
 
 ```
-origin/main            a44bbb5（現行主幹：舊基線 + 本批 7 個 commit + 文檔同步）
-  ├── dev/local-run    a619c24（落後於 main 一個純文檔提交，保留備查；新工作請另起分支）
+origin/main            15afe57（現行主幹：舊基線 + 本批 7 個 commit + 文檔同步）
+  ├── dev/local-run    a127220（落後於 main 一個純文檔提交，保留備查；新工作請另起分支）
   └── feature/<你的模組>   ← 隊友從 main 開分支
 ```
 
@@ -77,13 +77,13 @@ python scripts/check_provider.py              # 雲端連通性自檢（三槽�
 
 | Commit | 內容 |
 |---|---|
-| `c1cf220` | **階段 0 止血**：4 個 UI P0（照片失敗死局、切換學生串資料、無法連續做題、未映射複核死指令）；新增 12 例獨立 `challenge` 集；服務端冪等 |
-| `8520d5b` | 文件同步：外部方案 v1.1 對齊（HKEAA/EDB 紅線、元件採納決策） |
-| `ed4614b` | **階段 1 首批**：SymPy 步驟判分 `verifier.py`、評測資料分層腳手架、資料隔離門禁、GSM8K ingest、`configured` fail-fast |
-| `382aca8` | **接入 OpenCode Go**（hy4-flash-free）：混合 Provider、自訂 header、推理模型相容 |
-| `350fa37` | UI 標籤：`線上模型 · 本地檢索` |
-| `efd98ea` | **本地語義檢索**（paraphrase-multilingual-MiniLM-L12-v2）：兩階段打分、matchers 精度修復、hint 路由化 |
-| `a619c24` | 本交接文檔 + 主幹整合 |
+| `9cc7c94` | **階段 0 止血**：4 個 UI P0（照片失敗死局、切換學生串資料、無法連續做題、未映射複核死指令）；新增 12 例獨立 `challenge` 集；服務端冪等 |
+| `bc335f6` | 文件同步：外部方案 v1.1 對齊（HKEAA/EDB 紅線、元件採納決策） |
+| `c3226a8` | **階段 1 首批**：SymPy 步驟判分 `verifier.py`、評測資料分層腳手架、資料隔離門禁、GSM8K ingest、`configured` fail-fast |
+| `b3414f9` | **接入 OpenCode Go**（hy4-flash-free）：混合 Provider、自訂 header、推理模型相容 |
+| `fc23f9a` | UI 標籤：`線上模型 · 本地檢索` |
+| `d45136f` | **本地語義檢索**（paraphrase-multilingual-MiniLM-L12-v2）：兩階段打分、matchers 精度修復、hint 路由化 |
+| `a127220` | 本交接文檔 + 主幹整合 |
 
 ---
 
