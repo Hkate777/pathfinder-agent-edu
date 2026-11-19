@@ -28,8 +28,8 @@ Pathfinder AI 是「**診斷器而非解題器**」：學生拍錯題 → 定位
 ## 2. 分支策略
 
 ```
-origin/main            a619c24（現行主幹：舊基線 + 本批 7 個 commit，fast-forward 整合）
-  ├── dev/local-run    a619c24（與 main 同點，保留備查；新工作請另起分支）
+origin/main            a44bbb5（現行主幹：舊基線 + 本批 7 個 commit + 文檔同步）
+  ├── dev/local-run    a619c24（落後於 main 一個純文檔提交，保留備查；新工作請另起分支）
   └── feature/<你的模組>   ← 隊友從 main 開分支
 ```
 
