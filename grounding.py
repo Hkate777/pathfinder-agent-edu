@@ -39,9 +39,13 @@ class Grounder:
         self.matchers = matchers
         self.provider = provider
         self.threshold = threshold
-        # Matchers are the offline crutch. With a real embedding model they would cap the
-        # score at 0.25 whenever no regex hits — so real providers score on embeddings alone.
-        self.use_matchers = (provider.name == "offline-rule-baseline") if use_matchers is None else use_matchers
+        # Matchers pair with the local hashed embedding: offline baseline and the
+        # hybrid (online chat + local embed) route use the same blended score, so
+        # only the diagnosis model changes between the two runs. Real API
+        # embeddings score on cosine alone (matchers would cap them at 0.25).
+        self.use_matchers = (
+            getattr(provider, "embedding_kind", "") == "local-hash"
+        ) if use_matchers is None else use_matchers
         self.texts = [self.node_text(n) for n in nodes]
         self.vectors: Optional[List[List[float]]] = None
 

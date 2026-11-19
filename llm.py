@@ -21,7 +21,7 @@ import os
 import re
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fractions import Fraction
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -86,6 +86,11 @@ class Config:
     vision_model: str = ""
     text_model: str = ""
     embedding_model: str = ""
+    # "api" = real /embeddings endpoint (default); "local" = deterministic
+    # hashed bag-of-words used for grounding when the endpoint has no
+    # /embeddings (e.g. OpenCode Go). Hybrid runs must be labelled as such.
+    embedding_mode: str = "api"
+    extra_headers: Dict[str, str] = field(default_factory=dict)
     timeout: int = 60
     max_retries: int = 3
     offline: bool = False
@@ -112,12 +117,20 @@ class Config:
                 return default
 
         offline = value("PATHFINDER_OFFLINE", "0").lower() in ("1", "true", "yes")
+        try:
+            extra_headers = json.loads(value("LLM_EXTRA_HEADERS", "{}") or "{}")
+            if not isinstance(extra_headers, dict):
+                extra_headers = {}
+        except ValueError:
+            extra_headers = {}
         return cls(
             base_url=value("LLM_BASE_URL"),
             api_key=value("LLM_API_KEY"),
             vision_model=value("VISION_MODEL"),
             text_model=value("TEXT_MODEL"),
             embedding_model=value("EMBEDDING_MODEL"),
+            embedding_mode=(value("EMBEDDING_MODE", "api") or "api").lower(),
+            extra_headers={str(k): str(v) for k, v in extra_headers.items()},
             grounding_threshold=f("GROUNDING_THRESHOLD", 0.42),
             confidence_review=f("CONFIDENCE_REVIEW", 0.60),
             max_practice_per_day=max(1, int(f("MAX_PRACTICE_PER_DAY", 3))),
@@ -130,9 +143,13 @@ class Config:
     @property
     def configured(self) -> bool:
         # Grounding always calls provider.embed in online mode, so a missing
-        # embedding model must fail fast *before* the (billed) diagnosis call,
-        # not silently fall back or crash mid-pipeline.
-        return bool(self.api_key and self.base_url and self.text_model and self.embedding_model)
+        # embedding model must fail fast *before* the (billed) diagnosis call.
+        # EMBEDDING_MODE=local is the explicit opt-out: the endpoint has no
+        # /embeddings, so grounding uses the deterministic local embedding and
+        # every such run must be labelled as hybrid.
+        if not (self.api_key and self.base_url and self.text_model):
+            return False
+        return True if self.embedding_mode == "local" else bool(self.embedding_model)
 
 
 def _strip_json_fences(text: str) -> str:
@@ -169,9 +186,15 @@ def _tolerant_json(text: str) -> Dict[str, Any]:
 # --------------------------------------------------------------------------
 class OpenAICompatProvider:
     name = "openai-compatible"
+    embedding_kind = "api"
 
     def __init__(self, cfg: Config):
         self.cfg = cfg
+        self.headers = {
+            "Authorization": f"Bearer {cfg.api_key}",
+            "Content-Type": "application/json",
+            **dict(cfg.extra_headers or {}),
+        }
 
     def _post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.cfg.base_url.rstrip('/')}{path}"
@@ -180,10 +203,7 @@ class OpenAICompatProvider:
             try:
                 resp = requests.post(
                     url,
-                    headers={
-                        "Authorization": f"Bearer {self.cfg.api_key}",
-                        "Content-Type": "application/json",
-                    },
+                    headers=self.headers,
                     json=payload,
                     timeout=self.cfg.timeout,
                 )
@@ -223,9 +243,15 @@ class OpenAICompatProvider:
             },
         )
         try:
-            return body["choices"][0]["message"]["content"]
+            message = body["choices"][0]["message"] or {}
+            # Reasoning models may leave content empty and stream tokens into
+            # reasoning_content; a silent None here would crash JSON parsing.
+            reply = message.get("content") or message.get("reasoning_content") or ""
         except (KeyError, IndexError, TypeError) as exc:
             raise LLMResponseError(f"unexpected chat response shape: {str(body)[:200]}") from exc
+        if not str(reply).strip():
+            raise LLMResponseError("empty chat completion (no content or reasoning_content)")
+        return reply
 
     def parse_photo(self, image_path: str) -> Dict[str, Any]:
         if not self.cfg.vision_model:
@@ -353,6 +379,7 @@ class StubProvider:
     """Deterministic rule baseline. No network, no model — labelled in every output."""
 
     name = "offline-rule-baseline"
+    embedding_kind = "local-hash"
 
     def __init__(self, cfg: Config):
         self.cfg = cfg
@@ -405,8 +432,42 @@ class StubProvider:
         return out
 
 
+class HybridProvider:
+    """Online chat/vision + local deterministic embeddings.
+
+    Used when the endpoint exposes /chat/completions but no /embeddings
+    (e.g. OpenCode Go). Grounding then runs on the same local hashed
+    bag-of-words as the offline baseline, which keeps the retrieval layer
+    constant while the diagnosis text comes from the real model. Every such
+    run must be labelled `openai-compatible+local-hash` — reports may not
+    present it as a full online pipeline.
+    """
+
+    name = "openai-compatible+local-hash"
+    embedding_kind = "local-hash"
+
+    def __init__(self, cfg: Config):
+        self.cfg = cfg
+        self._chat = OpenAICompatProvider(cfg)
+        self._local = StubProvider(cfg)
+
+    def chat(self, system: str, user: str) -> str:
+        return self._chat.chat(system, user)
+
+    def parse_photo(self, image_path: str) -> Dict[str, Any]:
+        return self._chat.parse_photo(image_path)
+
+    def diagnose(self, question: str, steps: List[str]) -> Dict[str, Any]:
+        return self._chat.diagnose(question, steps)
+
+    def embed(self, texts: Iterable[str]) -> List[List[float]]:
+        return self._local.embed(texts)
+
+
 def get_provider(cfg: Optional[Config] = None, force_offline: bool = False) -> Any:
     cfg = cfg or Config.from_env()
     if force_offline or cfg.offline or not cfg.configured:
         return StubProvider(cfg)
+    if cfg.embedding_mode == "local":
+        return HybridProvider(cfg)
     return OpenAICompatProvider(cfg)

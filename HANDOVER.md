@@ -21,6 +21,15 @@
 
 **未做（待资源/授权）**：held_out 实例填充与教师 κ 研究、bge-m3/PaddleOCR 接入、云 API 真实模型评测、RBAC/同意门。gate 在 `held_out.json` 创建前为 inactive（exit 0），创建后自动生效。
 
+### 0A.1 OpenCode Go（hy4-flash-free）接入 — 2026-11-19
+
+- **端点**：`https://opencode.ai/inference/go/openai/v1`（`api-key` + `x-opencode-session` header）；`/models` 31 个模型，`hy4-flash-free` 可用；**该端点无 `/embeddings`（404）**。
+- **接入方式：混合模式** `openai-compatible+local-hash`——TEXT/VISION 用真实模型，grounding 用本地确定性 embedding（`EMBEDDING_MODE=local`）。grounding 判据由 provider 名改为 `embedding_kind == "local-hash"`，保证与离线口径变量隔离。
+- **代码改动**：`Config` 增 `embedding_mode`/`extra_headers`；`OpenAICompatProvider` 支持自定义 header、`chat()` 兼容 `reasoning_content`（content 为空的模型不再崩）；新增 `HybridProvider`；`check_provider.py` 支持 local 模式。
+- **真实模型首轮评测**（n=7 / n=12，无独立教师校验，免费模型）：断步定位 **6/6、8/8**（优于离线 6/8）；知识点 5/6、7/8；错误类型 4/6、4/8（弱于过拟合的离线规则）；出现 **false blame 1/3** 与 1 例"信息不足"误诊。→ 真实模型能定位断点但错因分类与弃答判断偏弱，**不能替代教师复核**。
+- 密钥仅存本地 `.env`（gitignored），未写入仓库；`.env.example` 记录 `EMBEDDING_MODE`/`LLM_EXTRA_HEADERS` 用法（占位值）。
+- 合规提醒：OpenCode Go 为云端路由，真实学生数据接入前须完成 DPA + 出境评估。
+
 ---
 
 ## 0. 阶段 0 执行记录（2026-11-19 下午）
