@@ -43,7 +43,11 @@ def topic(kp: str) -> str:
 
 
 def provider_name(provider: str) -> str:
-    return {OFFLINE: "离线规则基线", "openai-compatible": "在线模型"}.get(provider, provider or "来源未知")
+    return {
+        OFFLINE: "离线规则基线",
+        "openai-compatible": "在线模型",
+        "openai-compatible+local-hash": "在线模型 · 本地检索",
+    }.get(provider, provider or "来源未知")
 
 
 def setup() -> None:
