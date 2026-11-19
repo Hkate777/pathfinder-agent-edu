@@ -1,6 +1,6 @@
 # Pathfinder AI · 團隊交接說明（繁體）
 
-> 更新日期：2026-11-19 ｜ 分支：`dev/local-run` ｜ 基線 `main` @ `01f8de8`
+> 更新日期：2026-11-19 ｜ **主干 `main` 已含本批全部 7 个提交 @ `a619c24`**（由 `dev/local-run` fast-forward 并入，旧基线内容一行未丢）
 > 本文件面向共同開發的隊友：說明目前做到哪裡、如何接手、協作規範、已知風險。
 > 專案原始說明見 `README.md`；本地執行環境見 `HANDOVER.md`；全面審評與路線圖見 `ASSESSMENT_AND_ROADMAP.md`。
 
@@ -28,17 +28,16 @@ Pathfinder AI 是「**診斷器而非解題器**」：學生拍錯題 → 定位
 ## 2. 分支策略
 
 ```
-origin/main            01f8de8（賽前基線，未包含本批工作）
-  └── dev/local-run    efd98ea（本批 6 個 commit，已推送）
-        ├── feature/<你的模組>   ← 隊友從這裡開分支
-        └── ...
+origin/main            a619c24（現行主幹：舊基線 + 本批 7 個 commit，fast-forward 整合）
+  ├── dev/local-run    a619c24（與 main 同點，保留備查；新工作請另起分支）
+  └── feature/<你的模組>   ← 隊友從 main 開分支
 ```
 
 **規則**：
-1. 隊友**不要**直接在 `dev/local-run` 上開發，改為 `git switch -c feature/<主題> dev/local-run`。
-2. 合併走 PR → 至少 1 人審查 → 合回 `dev/local-run`。
-3. `dev/local-run` 驗收通過（66 測試 + 三套評測 + 隔離門禁）後，才由負責人合併 `main`。
-4. **不要 force push、不要改寫已推送的歷史**。
+1. 隊友**不要**直接在 `main` 或 `dev/local-run` 上開發，改為 `git switch -c feature/<主題> main`。
+2. 合併走 PR → 至少 1 人審查 → 合回 `main`。
+3. `main` 已包含本批交付；若你的分支落後於 main，先 rebase 或 merge main 再推。
+4. **不要 force push、不要改寫已推送的歷史**；`main` 無分叉時優先 fast-forward。
 
 ---
 
@@ -74,7 +73,7 @@ python scripts/check_provider.py              # 雲端連通性自檢（三槽�
 
 ---
 
-## 4. 本批 6 個 Commit 做了什麼（`origin/main..dev/local-run`）
+## 4. 本批 7 個 Commit 做了什麼（`origin/main` 上，fast-forward 自 `dev/local-run`）
 
 | Commit | 內容 |
 |---|---|
@@ -84,6 +83,7 @@ python scripts/check_provider.py              # 雲端連通性自檢（三槽�
 | `382aca8` | **接入 OpenCode Go**（hy4-flash-free）：混合 Provider、自訂 header、推理模型相容 |
 | `350fa37` | UI 標籤：`線上模型 · 本地檢索` |
 | `efd98ea` | **本地語義檢索**（paraphrase-multilingual-MiniLM-L12-v2）：兩階段打分、matchers 精度修復、hint 路由化 |
+| `a619c24` | 本交接文檔 + 主幹整合 |
 
 ---
 

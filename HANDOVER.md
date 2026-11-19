@@ -52,7 +52,7 @@
 | 10 | `teacher_kp_override` + 复核指定 KP；`effective_kp` 贯通画像/热力图/排程 | `app.py`、`diagnose.py`、`store.py` | `test_app_p0.py::test_d`、`test_workflows.py` |
 | 11 | 补 12 例独立挑战集 `--set challenge`；三套评测全可跑 | `evaluation/classroom_challenge.json` | `eval.py --set challenge` |
 
-**验证**：44/44 测试通过；三套评测全跑通（challenge 暴露泛化差距：错误类型 6/8=75%、知识点 7/8=88%、路由 10/12=83%）。文档数字统一为 44 测试 / 7 trace / 6+ 评测口径。改动全部提交在 `dev/local-run`，未推送远端。
+**验证**：44/44 测试通过；三套评测全跑通（challenge 暴露泛化差距：错误类型 6/8=75%、知识点 7/8=88%、路由 10/12=83%）。文档数字统一为 44 测试 / 7 trace / 6+ 评测口径。改动已提交在 `dev/local-run` 并 **fast-forward 合入 `main`**（`a619c24`）。
 
 ---
 
@@ -69,13 +69,12 @@ grounding 到课纲知识点、推送分级练习并生成 7 天间隔复习计�
 | 项目 | 状态 |
 |---|---|
 | 远程仓库 | `origin` → https://github.com/Hkate777/pathfinder-agent-edu.git |
-| 上游最新提交 | `01f8de8` Align docs with Cyberport AI Agent Challenge (education track) and add proposal PPT |
-| 上游提交数 | 2（`4e84590` 初始提交 → `01f8de8` 文档对齐） |
-| **当前工作分支** | **`dev/local-run`**（基于 `main` @ `01f8de8` 创建） |
-| 工作区 | **有大量未提交改动**（见下方说明） |
-| 未跟踪产物 | `ui.py`、`ui.css`、`.streamlit/`、`tests/test_app.py`、`tests/test_workflows.py`、`HANDOVER.md`、2 份 trace（详见 `git status`） |
+| **主干** | **`main` @ `a619c24`**（已 fast-forward 并入本批 7 个提交，含阶段 0/1、OpenCode Go 接入、本地语义检索、交接文档） |
+| 历史基线 | `01f8de8` Align docs with Cyberport AI Agent Challenge（旧提交仍在历史中） |
+| 工作分支 | `dev/local-run` @ `a619c24`（与 main 同点，保留备查） |
+| 工作区 | 干净（0 未提交项） |
 
-> ⚠️ **并行编辑说明（2026-11-19 12:45–13:09+，可能仍在进行）**：本会话克隆仓库并启动服务后，另一会话/开发者在同一工作区持续大改（最新累计 **11 个文件 +1163/-396 行**）。主要改动：UI 重构（`ui.py`/`ui.css`/`.streamlit/`）、新增 15 个测试（`test_app.py`/`test_workflows.py`）、修复 `utcnow` 弃用（`store.utc_now()`）、`store.py` 增加教师复核等、**`eval.py` 重写为三套评测**（`--set samples`/`parsing`/`challenge`，输出更细的指标：路由、引用步骤、错误归因）。交接文档初始版本描述的是克隆时基线；§4 验证结果已按改动后代码复核更新。接手时请先 `git status` + `git diff` 确认最新状态。
+> ⚠️ **并行编辑说明（2026-11-19 12:45–13:09+）**：本仓库曾被另一会话在同一工作区大改（UI 重构 `ui.py`/`ui.css`/`.streamlit/`、新增 15 个测试、修复 `utcnow`、`eval.py` 重写为三套评测）。上述改动已全部随本批提交并入主干。面向队友的协作说明见 `TEAM_HANDOFF.md`（分支策略、分工、PR 清单）。
 
 ## 3. 本地环境
 
@@ -147,7 +146,7 @@ python -m streamlit run app.py          # 默认 http://localhost:8501
 
 - [x] ~~修复 `utcnow` 弃用警告~~
 - [x] ~~补齐 `evaluation/classroom_challenge.json` 并跑通三套评测~~（阶段 0 完成）
-- [x] ~~阶段 0 提交对齐（全部改动入库 `dev/local-run`）~~
+- [x] ~~阶段 0 提交对齐（全部改动入库并合入 `main`）~~
 - [ ] **阶段 1**：`correct` 状态、真实作答与判分、最小 RBAC、同意门/PII 遮蔽/删除权、教师队列批量化、诊断输出 schema 强校验（详见审评文档 §7）
 - [ ] 接入真实 API 端点后重跑评测，替换 README/PPT 全部基线数字
 - [ ] 决定重复 eval trace 是否清理历史归档
