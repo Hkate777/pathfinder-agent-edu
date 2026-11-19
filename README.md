@@ -265,10 +265,11 @@ streamlit run app.py                                                 # 学生 + 
 | `eval_20261031_145842` | 全部 7 样本 | 类型 6/6、知识点 6/6 | — | — | 断点定位 6/6，1 例按设计重拍 |
 | `python -m unittest discover -s tests` | 44 项离线测试 | — | — | — | 全部通过，零 API 消耗 |
 | `python eval.py --set challenge` | 12 个独立挑战用例 | 6/8 (75%) | 7/8 (88%) | — | 断步 6/8，路由 10/12；暴露规则基线的泛化短板 |
-| `eval_samples_20261119_082419`（**在线·hy4-flash-free**） | 7 开发样本 | 4/6 (67%) | 5/6 (83%) | — | 断步 6/6、路由 7/7；真实模型首个对照 |
-| `eval_challenge_20261119_082629`（**在线·hy4-flash-free**） | 12 挑战用例 | 4/8 (50%) | 7/8 (88%) | — | 断步 **8/8**、路由 11/12；出现 false blame 1/3 |
+| `eval_samples_20261119_082419`（在线·hy4-flash-free·哈希检索） | 7 开发样本 | 4/6 (67%) | 5/6 (83%) | — | 断步 6/6、路由 7/7；首个真实模型对照 |
+| `eval_challenge_20261119_085931`（**在线·hy4-flash-free·语义检索**） | 12 挑战用例 | 4/8 (50%) | **8/8 (100%)** | — | 断步 **8/8**、路由 11/12；false blame 1/3 |
+| `eval_samples_20261119_085626`（在线·hy4-flash-free·语义检索） | 7 开发样本 | 3/6 (50%) | **6/6 (100%)** | — | 断步 6/6、路由 7/7 |
 
-> **引用前必读**：离线数字来自 **规则基线**（`offline-rule-baseline`），规则针对 `samples/` 编写——`samples` 6/6 验证的是**管线接线**，不是模型精度；`challenge` 75%/88% 才是泛化信号。在线数字来自 **OpenCode Go 免费模型 hy4-flash-free**，为**混合模式**（诊断=真实模型，grounding=本地确定性 embedding，标注 `openai-compatible+local-hash`），样本量仅 7/12、无独立教师校验，**不构成产品结论**。真实多模态模型的一致性评估（Cohen's κ）待留出集与双标注到位后运行。
+> **引用前必读**：离线数字来自 **规则基线**（`offline-rule-baseline`），规则针对 `samples/` 编写——`samples` 6/6 验证的是**管线接线**，不是模型精度；`challenge` 8/8 是泛化信号。在线数字来自 **OpenCode Go 免费模型 hy4-flash-free**，为**混合模式**（诊断=真实模型，grounding=本地 Sentence-Transformers 语义检索，标注 `openai-compatible+local-st`），样本量仅 7/12、无独立教师校验，**不构成产品结论**。同批对比：换回哈希检索时 challenge 知识点为 7/8；语义检索把中文题从 0/6 提升到 6/6。真实多模态模型的一致性评估（Cohen's κ）待留出集与双标注到位后运行。
 
 ---
 

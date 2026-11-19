@@ -1,15 +1,15 @@
 {
-  "note": "Regex matchers powering the offline (no-API-key) grounding path. The real path uses embeddings from EMBEDDING_MODEL; these exist so the pipeline is runnable and testable with no keys.",
+  "note": "Regex matchers powering the local grounding path (offline baseline and the local-st semantic hybrid). Patterns must be STRUCTURAL or subject-specific: broad instruction words (solve, simplify, force, kg…) fired on almost every question and stole nodes from the semantic model — removed 2026-11-19. The pipeline is runnable and testable with no keys.",
   "matchers": {
-    "ALG-7.1": ["\\d*[a-z]\\s*\\+\\s*\\d*[a-z]", "combine|simplify"],
-    "ALG-7.2": ["[a-z]\\s*[+-]\\s*\\d+\\s*=\\s*\\d+", "solve|find the value"],
+    "ALG-7.1": ["\\d+\\s*[a-z]\\s*\\+\\s*\\d*\\s*[a-z]", "combine like terms|like terms"],
+    "ALG-7.2": ["[a-z]\\s*[+-]\\s*\\d+\\s*=\\s*\\d+\\b", "\\bx\\s*=\\s*-?\\d+"],
     "ALG-7.3": ["\\d+\\s*\\([a-z]\\s*[+-]\\s*\\d+\\)", "\\([a-z]\\s*[+-]\\s*\\d+\\)"],
-    "ALG-7.4": ["\\d+\\s*/\\s*\\d+\\s*[+-]\\s*\\d+\\s*/\\s*\\d+", "/\\s*\\d+"],
-    "ALG-8.1": ["[a-z]\\^\\s*\\d+", "simplify|power|exponent"],
-    "ALG-8.3": ["\\([a-z]\\s*[+-]\\s*[a-z]\\)\\s*\\^?\\s*?2", "[a-z]\\^?2\\s*\\+\\s*[a-z]\\^?2"],
-    "PHY-9.1": ["F\\s*=\\s*ma", "force|acceleration"],
-    "PHY-9.2": ["km/h|m/s", "\\d+\\s*g\\b", "kg|convert"],
-    "CHE-8.1": ["->", "balance|equation"],
-    "ENG-7.1": ["\\b(is|are|go|goes|have|has)\\b", "subject|verb"]
+    "ALG-7.4": ["\\d+\\s*/\\s*\\d+\\s*[+-]\\s*\\d+\\s*/\\s*\\d+", "\\d+\\s*/\\s*\\d+"],
+    "ALG-8.1": ["[a-z]\\^\\s*\\d+", "exponent|index law|power of a power"],
+    "ALG-8.3": ["\\([a-z]\\s*[+-]\\s*[a-z]\\)\\s*\\^?\\s*?2", "[a-z]\\s*\\^\\s*2\\s*\\+\\s*[a-z]\\s*\\^\\s*2"],
+    "PHY-9.1": ["F\\s*=\\s*m\\s*a", "net force|newton"],
+    "PHY-9.2": ["km/h|m/s", "\\d+\\s*g\\b", "convert|SI unit"],
+    "CHE-8.1": ["->|\u2192", "balance|stoichiometr"],
+    "ENG-7.1": ["subject-verb|singular|plural|agreement"]
   }
 }

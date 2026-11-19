@@ -39,12 +39,15 @@ class Grounder:
         self.matchers = matchers
         self.provider = provider
         self.threshold = threshold
-        # Matchers pair with the local hashed embedding: offline baseline and the
-        # hybrid (online chat + local embed) route use the same blended score, so
-        # only the diagnosis model changes between the two runs. Real API
-        # embeddings score on cosine alone (matchers would cap them at 0.25).
+        # Matchers pair with LOCAL embeddings. Hashing keeps the blended score
+        # (0.75 ratio + 0.25 sim) so the offline baseline stays reproducible.
+        # Sentence-transformers adds semantics the regex cannot see (Chinese
+        # questions); there we take max(sim, blended) — either a strong regex
+        # hit or a strong semantic match is enough, and negative controls stay
+        # low on both. Real API embeddings score on cosine alone.
+        self.embedding_kind = getattr(provider, "embedding_kind", "")
         self.use_matchers = (
-            getattr(provider, "embedding_kind", "") == "local-hash"
+            self.embedding_kind in ("local-hash", "local-st")
         ) if use_matchers is None else use_matchers
         self.texts = [self.node_text(n) for n in nodes]
         self.vectors: Optional[List[List[float]]] = None
@@ -62,9 +65,15 @@ class Grounder:
         hits = sum(1 for p in patterns if re.search(p, text, flags=re.IGNORECASE))
         return hits / len(patterns)
 
-    def score(self, text: str, node: Dict[str, Any], vec: List[float], text_vec: List[float]) -> float:
+    def score(self, text: str, node: Dict[str, Any], vec: List[float], text_vec: List[float],
+              *, matchers_active: bool = True) -> float:
         sim = cosine(text_vec, vec)
         if not self.use_matchers:
+            return round(sim, 4)
+        if not matchers_active:
+            # Two-stage rule for semantic embeddings (see ground()): with no
+            # syllabus matcher firing anywhere, fall back to pure semantics so
+            # Chinese questions can still ground.
             return round(sim, 4)
         ratio = self.matcher_ratio(text, node["id"])
         return round(0.75 * ratio + 0.25 * sim, 4)
@@ -75,10 +84,22 @@ class Grounder:
             return GroundResult(None, 0.0, True, self.threshold, method)
         if self.vectors is None:
             self.vectors = self.provider.embed(self.texts)
-        query = f"{text}\n{hint}".strip()
+        # Hint handling is route-dependent, by design:
+        #  * hashed baseline — the hint comes from the same rule engine and acts
+        #    as an extra evidence token; it keeps the rule route reproducible.
+        #  * semantic model — a model guess must not steer retrieval: measured,
+        #    a wrong PHY-9.1 hint dragged a unit-conversion case off PHY-9.2
+        #    (confirmation bias, review §6.2 C3).
+        query = f"{text}\n{hint}".strip() if self.embedding_kind == "local-hash" else text
         query_vec = self.provider.embed([query])[0]
+        # With a semantic model, matcher evidence must dominate when present:
+        # ST similarity alone ranks "same topic" too broadly (e.g. prefers
+        # Newton's law over unit conversion because the question mentions
+        # force). Only when NO matcher fires at all do we trust pure semantics.
+        ratios = {node["id"]: self.matcher_ratio(query, node["id"]) for node in self.nodes}
+        matchers_active = not (self.embedding_kind == "local-st" and max(ratios.values(), default=0) == 0)
         scored = [
-            (self.score(query, node, self.vectors[i], query_vec), node)
+            (self.score(query, node, self.vectors[i], query_vec, matchers_active=matchers_active), node)
             for i, node in enumerate(self.nodes)
         ]
         scored.sort(key=lambda pair: pair[0], reverse=True)

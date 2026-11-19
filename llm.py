@@ -90,6 +90,8 @@ class Config:
     # hashed bag-of-words used for grounding when the endpoint has no
     # /embeddings (e.g. OpenCode Go). Hybrid runs must be labelled as such.
     embedding_mode: str = "api"
+    # Used when embedding_mode == "local-st" (sentence-transformers, local CPU).
+    local_embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
     extra_headers: Dict[str, str] = field(default_factory=dict)
     timeout: int = 60
     max_retries: int = 3
@@ -130,6 +132,8 @@ class Config:
             text_model=value("TEXT_MODEL"),
             embedding_model=value("EMBEDDING_MODEL"),
             embedding_mode=(value("EMBEDDING_MODE", "api") or "api").lower(),
+            local_embedding_model=value("LOCAL_EMBEDDING_MODEL",
+                                        "paraphrase-multilingual-MiniLM-L12-v2"),
             extra_headers={str(k): str(v) for k, v in extra_headers.items()},
             grounding_threshold=f("GROUNDING_THRESHOLD", 0.42),
             confidence_review=f("CONFIDENCE_REVIEW", 0.60),
@@ -149,7 +153,7 @@ class Config:
         # every such run must be labelled as hybrid.
         if not (self.api_key and self.base_url and self.text_model):
             return False
-        return True if self.embedding_mode == "local" else bool(self.embedding_model)
+        return True if self.embedding_mode in ("local", "local-st") else bool(self.embedding_model)
 
 
 def _strip_json_fences(text: str) -> str:
@@ -446,10 +450,12 @@ class HybridProvider:
     name = "openai-compatible+local-hash"
     embedding_kind = "local-hash"
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, chat=None, embedder=None, label: str = "local-hash"):
         self.cfg = cfg
-        self._chat = OpenAICompatProvider(cfg)
-        self._local = StubProvider(cfg)
+        self._chat = chat or OpenAICompatProvider(cfg)
+        self._local = embedder or StubProvider(cfg)
+        self.embedding_kind = label
+        self.name = f"{self._chat.name}+{label}"
 
     def chat(self, system: str, user: str) -> str:
         return self._chat.chat(system, user)
@@ -464,10 +470,45 @@ class HybridProvider:
         return self._local.embed(texts)
 
 
+class SentenceTransformerEmbedder:
+    """Local semantic embeddings via sentence-transformers (CPU is enough).
+
+    Default model `paraphrase-multilingual-MiniLM-L12-v2` outputs 384-d
+    vectors and covers Chinese/traditional Chinese, which the hashed
+    bag-of-words cannot see at all. Weights load lazily on first use.
+    """
+
+    name = "sentence-transformers"
+
+    def __init__(self, cfg: Optional[Config] = None):
+        self.cfg = cfg or Config.from_env()
+        self.model_name = getattr(self.cfg, "local_embedding_model", "") or \
+            "paraphrase-multilingual-MiniLM-L12-v2"
+        self._model = None
+
+    def _load(self):
+        if self._model is None:
+            from sentence_transformers import SentenceTransformer  # optional dependency
+            self._model = SentenceTransformer(self.model_name)
+        return self._model
+
+    def embed(self, texts: Iterable[str]) -> List[List[float]]:
+        model = self._load()
+        vectors = model.encode([str(t) for t in texts], normalize_embeddings=True)
+        return [vector.tolist() for vector in vectors]
+
+
 def get_provider(cfg: Optional[Config] = None, force_offline: bool = False) -> Any:
     cfg = cfg or Config.from_env()
+    # Offline (explicit, forced, or unconfigured) always means the deterministic
+    # hashed baseline: reproducible numbers, no model download, no network. The
+    # semantic local embedding is only used by the online-chat hybrid (endpoint
+    # without /embeddings), which is where it adds value over the regex router.
     if force_offline or cfg.offline or not cfg.configured:
         return StubProvider(cfg)
+    if cfg.embedding_mode == "local-st":
+        return HybridProvider(cfg, chat=OpenAICompatProvider(cfg),
+                              embedder=SentenceTransformerEmbedder(cfg), label="local-st")
     if cfg.embedding_mode == "local":
         return HybridProvider(cfg)
     return OpenAICompatProvider(cfg)

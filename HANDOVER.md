@@ -30,6 +30,15 @@
 - 密钥仅存本地 `.env`（gitignored），未写入仓库；`.env.example` 记录 `EMBEDDING_MODE`/`LLM_EXTRA_HEADERS` 用法（占位值）。
 - 合规提醒：OpenCode Go 为云端路由，真实学生数据接入前须完成 DPA + 出境评估。
 
+### 0A.2 本地语义检索接入（sentence-transformers）— 2026-11-19
+
+- **模型**：`paraphrase-multilingual-MiniLM-L12-v2`（384 维，CPU 可跑，已在本机 HF 缓存）；新增 `EMBEDDING_MODE=local-st` 与 `LOCAL_EMBEDDING_MODEL`。
+- **两阶段打分**（`grounding.py`）：有 matcher 命中时 matcher 主导（0.75×ratio+0.25×sim）；全局无 matcher 命中时纯语义（中文题干兜底）。
+- **matchers 数据修复**：删除泛化指令词（`solve`/`simplify`/`force`/`kg`/`is|are` 等），改为结构性模式；修正 3 处误伤（`H2+O2` 被误认平方和、`2x+3=4x` 被误认移项、`(a+b)` 被误认合并同类项）。
+- **hint 路由化**：哈希路径保留 hint（与规则同源、是证据）；语义路径**不使用 hint**——实测模型的错误 hint（PHY-9.1）会把单位换算题从 9.2 带偏（确认偏误）。
+- **效果**（离线可复现 + 在线混合）：哈希基线 samples 6/6、challenge 8/8；在线（hy4+ST）samples KP 6/6 / 断步 6/6 / 路由 7/7，challenge KP 8/8 / 断步 8/8 / 路由 11/12。**中文题检索从 0/6 → 6/6**。
+- 注意：`EMBEDDING_MODE=local-st` 仅用于"在线 chat 缺 /embeddings"的混合模式；`PATHFINDER_OFFLINE=1` 固定哈希基线以保证评测可复现。
+
 ---
 
 ## 0. 阶段 0 执行记录（2026-11-19 下午）
