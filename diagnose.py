@@ -10,19 +10,25 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
+import math
 import os
 import sys
 import time
-from datetime import datetime
+from contextlib import closing
 from typing import Any, Dict, List, Optional
 
 from grounding import Grounder, load_kb
-from llm import Config, ERROR_TYPES, LLMError, get_provider
+from llm import Config, ERROR_TYPES, LLMResponseError, get_provider
 from schedule import Gap, build_path, initial_path
-from store import add_mistake, connect, gap_profile, init_db
-from vision import RETAKE_MESSAGE, ParseResult, from_text, parse_photo
+from store import (
+    add_mistake, completed_practice, connect, find_submission, gap_profile, init_db,
+    mistake_history, parse_timestamp, record_submission, utc_now,
+)
+from vision import RETAKE_MESSAGE, ParseResult, from_sample, from_text, parse_photo
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+LOG = logging.getLogger(__name__)
 
 
 class Pipeline:
@@ -41,7 +47,7 @@ class Pipeline:
         self.trace: List[Dict[str, Any]] = []
 
     def _step(self, name: str, payload: Any) -> None:
-        self.trace.append({"step": name, "at": datetime.utcnow().isoformat(timespec="seconds"), "payload": payload})
+        self.trace.append({"step": name, "at": utc_now().isoformat(timespec="seconds"), "payload": payload})
 
     def node_by_id(self, kp_id: str) -> Optional[Dict[str, Any]]:
         return next((n for n in self.nodes if n["id"] == kp_id), None)
@@ -52,43 +58,50 @@ class Pipeline:
         student_id: str = "anon",
         image_path: Optional[str] = None,
         save: bool = True,
+        *,
+        source: Optional[str] = None,
+        submission_key: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """Diagnose one transcript.
+
+        ``submission_key`` makes persistence idempotent: a repeated submission
+        (e.g. a browser refresh) reuses the first mistake row instead of adding
+        a second one, which would distort heatmaps and repeat-error metrics.
+        """
         t0 = time.time()
         self.trace = []
         self._step("parse", parsed.to_dict())
 
         if not parsed.ok:
-            self._step("abort", {"reason": parsed.status, "message": RETAKE_MESSAGE})
-            return {
-                "status": parsed.status,
-                "question": parsed.question,
-                "steps": parsed.steps,
-                "broken_step": None,
-                "error_type": "unreadable",
-                "knowledge_point": None,
-                "confidence": 1.0,
-                "explanation": None,
-                "practice": [],
-                "schedule": [],
-                "message": RETAKE_MESSAGE,
-                "flags": {
-                    "unmapped": False,
-                    "needs_teacher_review": True,
-                    "provider": self.provider.name,
-                    "elapsed_s": round(time.time() - t0, 3),
-                },
-            }
+            return self._abstain(parsed, parsed.status, t0)
 
         raw = self.provider.diagnose(parsed.question, parsed.steps)
         self._step("diagnose", raw)
         error_type = str(raw.get("error_type", "procedural")).lower()
+        if error_type == "unreadable":
+            return self._abstain(parsed, "unreadable", t0)
         if error_type not in ERROR_TYPES:
+            LOG.warning("Provider %s returned an unknown error type. Using procedural.", self.provider.name)
             error_type = "procedural"
-        confidence = float(raw.get("confidence", 0.0) or 0.0)
-        broken_step = raw.get("broken_step")
+        try:
+            confidence = float(raw.get("confidence", 0.0) or 0.0)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise LLMResponseError("Diagnosis confidence must be a number.") from exc
+        if not math.isfinite(confidence) or not 0 <= confidence <= 1:
+            raise LLMResponseError("Diagnosis confidence must be between zero and one.")
+        quote = raw.get("broken_step")
+        broken_step = next(
+            (step for step in parsed.steps if step.strip() and isinstance(quote, str) and step.strip() == quote.strip()),
+            None,
+        )
+        explanation = raw.get("explanation") if broken_step else None
+        if not isinstance(explanation, str):
+            explanation = None
+        needs_review = broken_step is None or confidence < self.cfg.confidence_review
 
         query = " ; ".join([parsed.question] + parsed.steps)
-        ground = self.grounder.ground(query, hint=str(raw.get("knowledge_point_hint", "")))
+        hint = raw.get("knowledge_point_hint") if broken_step else ""
+        ground = self.grounder.ground(query, hint=hint if isinstance(hint, str) else "")
         self._step("ground", {"knowledge_point": ground.knowledge_point, "score": ground.score, "unmapped": ground.unmapped})
 
         node = ground.node
@@ -107,40 +120,42 @@ class Pipeline:
         # Honest failure accounting: unmapped diagnoses are recorded too (grounded=0),
         # so the unmapped share of uploads is measurable instead of invisible.
         mistake_id = None
+        duplicate = False
         schedule = initial_path(items)
         plan: List[Dict[str, Any]] = []
         if save:
-            conn = connect(os.path.join(ROOT, self.cfg.db_path))
-            init_db(conn)
-            mistake_id = add_mistake(
-                conn,
-                {
-                    "student_id": student_id,
-                    "image_path": image_path,
-                    "question_text": parsed.question,
-                    "steps": parsed.steps,
-                    "broken_step": broken_step,
-                    "error_type": error_type,
-                    "knowledge_point_id": node["id"] if node else None,
-                    "confidence": confidence,
-                    "grounded": bool(node),
-                    "provider": self.provider.name,
-                },
-            )
-            gaps = [
-                Gap(
-                    knowledge_point=g["knowledge_point"],
-                    error_type=g["error_type"],
-                    repeat_count=g["repeat_count"],
-                    days_since=g["days_since"],
-                    cleared_count=g.get("cleared_count", 0),
-                    items=self.node_by_id(g["knowledge_point"]).get("items", []),
-                )
-                for g in gap_profile(conn, student_id)
-                if self.node_by_id(g["knowledge_point"])
-            ]
-            conn.close()
-            plan = build_path(gaps, max_per_day=self.cfg.max_practice_per_day)
+            with closing(connect(os.path.join(ROOT, self.cfg.db_path))) as conn, conn:
+                init_db(conn)
+                existing = find_submission(conn, submission_key) if submission_key else None
+                if existing is not None:
+                    mistake_id = existing
+                    duplicate = True
+                else:
+                    mistake_id = add_mistake(
+                        conn,
+                        {
+                            "student_id": student_id,
+                            "image_path": image_path,
+                            "question_text": parsed.question,
+                            "steps": parsed.steps,
+                            "broken_step": broken_step,
+                            "error_type": error_type,
+                            "knowledge_point_id": node["id"] if node else None,
+                            "confidence": confidence,
+                            "grounded": bool(node),
+                            "provider": self.provider.name,
+                        },
+                        details={
+                            "explanation": explanation,
+                            "grounding_score": ground.score,
+                            "needs_review": needs_review,
+                            "source": source,
+                        },
+                        commit=False,
+                    )
+                    if submission_key:
+                        record_submission(conn, submission_key, mistake_id)
+                plan = self.review_plan(conn, student_id)
 
         result = {
             "status": "ok",
@@ -150,7 +165,7 @@ class Pipeline:
             "error_type": error_type,
             "knowledge_point": ground.knowledge_point,
             "confidence": confidence,
-            "explanation": raw.get("explanation"),
+            "explanation": explanation,
             "remediation": node.get("remediation") if node else None,
             "practice": practice,
             "schedule": schedule,
@@ -159,20 +174,84 @@ class Pipeline:
             "mistake_id": mistake_id,
             "flags": {
                 "unmapped": ground.unmapped,
-                "needs_teacher_review": confidence < self.cfg.confidence_review,
+                "needs_teacher_review": needs_review,
                 "provider": self.provider.name,
                 "grounding_score": ground.score,
                 "threshold": ground.threshold,
+                "duplicate": duplicate,
                 "elapsed_s": round(time.time() - t0, 3),
             },
         }
         self._step("result", result)
         return result
 
+    def _abstain(self, parsed: ParseResult, status: str, started: float) -> Dict[str, Any]:
+        self._step("abort", {"reason": status, "message": RETAKE_MESSAGE})
+        return {
+            "status": status,
+            "question": parsed.question,
+            "steps": parsed.steps,
+            "broken_step": None,
+            "error_type": "unreadable",
+            "knowledge_point": None,
+            "confidence": 1.0,
+            "explanation": None,
+            "practice": [],
+            "schedule": [],
+            "message": RETAKE_MESSAGE,
+            "flags": {
+                "unmapped": False,
+                "needs_teacher_review": True,
+                "provider": self.provider.name,
+                "elapsed_s": round(time.time() - started, 3),
+            },
+        }
+
+    def review_plan(self, conn, student_id: str) -> List[Dict[str, Any]]:
+        latest = {}
+        for row in mistake_history(conn, student_id, self.cfg.confidence_review):
+            if row["decision"] == "rejected":
+                continue
+            # A teacher-assigned knowledge point (override) makes an otherwise
+            # unmapped mistake eligible for practice once the teacher confirms it.
+            kp = row["effective_kp"]
+            if not kp:
+                continue
+            if row["needs_review"] and row["decision"] != "confirmed":
+                continue
+            latest.setdefault(kp, row)
+        completed = completed_practice(conn, student_id)
+        gaps = []
+        for entry in gap_profile(conn, student_id):
+            kp = entry["knowledge_point"]
+            row = latest.get(kp)
+            node = self.node_by_id(kp)
+            if row is None or not node:
+                continue
+            gaps.append(Gap(
+                knowledge_point=kp,
+                error_type=entry["error_type"],
+                repeat_count=entry["repeat_count"],
+                days_since=entry["days_since"],
+                cleared_count=entry["cleared_count"],
+                items=node.get("items", []),
+                completed_items=completed.get(row["id"], set()),
+            ))
+        activations = [
+            parse_timestamp(row["reviewed_at"] or row["created_at"])
+            for row in latest.values()
+        ]
+        start = max((at for at in activations if at is not None), default=utc_now()).astimezone().date()
+        plan = build_path(gaps, max_per_day=self.cfg.max_practice_per_day, today=start)
+        for block in plan:
+            for item in block["items"]:
+                item["mistake_id"] = latest[item["knowledge_point"]]["id"]
+        return plan
+
 
 def trace_markdown(sample_id: str, parsed: ParseResult, result: Dict[str, Any], trace: List[Dict[str, Any]]) -> str:
     lines = [
-        f"# Trace · {sample_id} · {datetime.utcnow().isoformat(timespec='seconds')} UTC",
+        f"# Trace · {sample_id} · {utc_now().isoformat(timespec='seconds')}",
         "",
         f"- provider: `{result['flags']['provider']}`",
         f"- input status: `{parsed.status}`",
@@ -221,11 +300,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.sample:
         with open(args.sample, "r", encoding="utf-8") as fh:
             sample = json.load(fh)
-        parsed = ParseResult(
-            status=sample.get("parse_status", "ok" if sample.get("question") else "unreadable"),
-            question=sample.get("question", ""),
-            steps=sample.get("steps", []),
-        )
+        parsed = from_sample(sample)
         sample_id = sample.get("id", os.path.basename(args.sample))
     elif args.image:
         parsed = parse_photo(pipe.provider, args.image)
@@ -241,7 +316,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if args.trace:
         os.makedirs(os.path.join(ROOT, "traces"), exist_ok=True)
-        path = os.path.join(ROOT, "traces", f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{sample_id}.md")
+        path = os.path.join(ROOT, "traces", f"{utc_now().strftime('%Y%m%d_%H%M%S')}_{sample_id}.md")
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(trace_markdown(sample_id, parsed, result, pipe.trace))
         result["trace_path"] = os.path.relpath(path, ROOT)

@@ -16,26 +16,31 @@ import base64
 import hashlib
 import json
 import math
+import mimetypes
 import os
 import re
 import time
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
+from fractions import Fraction
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 import requests
+from dotenv import dotenv_values
 
 ERROR_TYPES = ("conceptual", "procedural", "careless", "unreadable")
 
 DIAGNOSE_SYSTEM = (
     "You are a mathematics and science diagnosis engine for school-level work. "
     "Given a question and the student's own working steps, locate the FIRST step where the "
-    "reasoning broke, classify the error, and explain it in one or two sentences for a student. "
+    "reasoning broke, classify the error, and explain it in one or two sentences in the question's language. "
     "Reply with JSON only, matching this schema:\n"
     '{"broken_step": str, "error_type": "conceptual"|"procedural"|"careless"|"unreadable", '
     '"knowledge_point_hint": str, "confidence": float, "explanation": str}\n'
     "error_type is a closed set: conceptual = wrong idea, procedural = right idea executed wrongly, "
     "careless = arithmetic or sign slip, unreadable = the work cannot be read. "
-    "Never invent a step the student did not write. If the work cannot be read, say so."
+    "Quote broken_step exactly as written by the student. If the work cannot be read, say so."
 )
 
 VISION_SYSTEM = (
@@ -93,25 +98,32 @@ class Config:
 
     @classmethod
     def from_env(cls) -> "Config":
+        local = dotenv_values(Path(__file__).with_name(".env"))
+
+        def value(name: str, default: str = "") -> str:
+            configured = local.get(name)
+            return os.getenv(name, default if configured is None else configured).strip()
+
         def f(name: str, default: float) -> float:
             try:
-                return float(os.getenv(name, default))
+                number = float(value(name, str(default)))
+                return number if math.isfinite(number) else default
             except ValueError:
                 return default
 
-        offline = os.getenv("PATHFINDER_OFFLINE", "0").strip().lower() in ("1", "true", "yes")
+        offline = value("PATHFINDER_OFFLINE", "0").lower() in ("1", "true", "yes")
         return cls(
-            base_url=os.getenv("LLM_BASE_URL", "").strip(),
-            api_key=os.getenv("LLM_API_KEY", "").strip(),
-            vision_model=os.getenv("VISION_MODEL", "").strip(),
-            text_model=os.getenv("TEXT_MODEL", "").strip(),
-            embedding_model=os.getenv("EMBEDDING_MODEL", "").strip(),
+            base_url=value("LLM_BASE_URL"),
+            api_key=value("LLM_API_KEY"),
+            vision_model=value("VISION_MODEL"),
+            text_model=value("TEXT_MODEL"),
+            embedding_model=value("EMBEDDING_MODEL"),
             grounding_threshold=f("GROUNDING_THRESHOLD", 0.42),
             confidence_review=f("CONFIDENCE_REVIEW", 0.60),
-            max_practice_per_day=int(f("MAX_PRACTICE_PER_DAY", 3)),
-            db_path=os.getenv("DB_PATH", "data/pathfinder.db").strip(),
-            kb_path=os.getenv("KB_PATH", "knowledge_base/knowledge_points.json").strip(),
-            matchers_path=os.getenv("MATCHERS_PATH", "knowledge_base/matchers.json").strip(),
+            max_practice_per_day=max(1, int(f("MAX_PRACTICE_PER_DAY", 3))),
+            db_path=value("DB_PATH", "data/pathfinder.db"),
+            kb_path=value("KB_PATH", "knowledge_base/knowledge_points.json"),
+            matchers_path=value("MATCHERS_PATH", "knowledge_base/matchers.json"),
             offline=offline,
         )
 
@@ -130,17 +142,23 @@ def _strip_json_fences(text: str) -> str:
 
 def _tolerant_json(text: str) -> Dict[str, Any]:
     """Accept raw JSON, fenced JSON, or JSON embedded in prose."""
+    if not isinstance(text, str):
+        raise LLMResponseError("Expected a text response containing a JSON object.")
     cleaned = _strip_json_fences(text)
     try:
-        return json.loads(cleaned)
+        value = json.loads(cleaned)
     except json.JSONDecodeError:
         start, end = cleaned.find("{"), cleaned.rfind("}")
         if start >= 0 and end > start:
             try:
-                return json.loads(cleaned[start : end + 1])
-            except json.JSONDecodeError:
-                pass
-    raise LLMResponseError(f"model did not return parseable JSON: {text[:200]!r}")
+                value = json.loads(cleaned[start : end + 1])
+            except json.JSONDecodeError as exc:
+                raise LLMResponseError("Model did not return parseable JSON.") from exc
+        else:
+            raise LLMResponseError("Model did not return parseable JSON.")
+    if not isinstance(value, dict):
+        raise LLMResponseError("Expected a JSON object.")
+    return value
 
 
 # --------------------------------------------------------------------------
@@ -203,7 +221,7 @@ class OpenAICompatProvider:
         )
         try:
             return body["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as exc:
+        except (KeyError, IndexError, TypeError) as exc:
             raise LLMResponseError(f"unexpected chat response shape: {str(body)[:200]}") from exc
 
     def parse_photo(self, image_path: str) -> Dict[str, Any]:
@@ -211,6 +229,7 @@ class OpenAICompatProvider:
             raise VisionUnavailableError("VISION_MODEL is not set — photo parsing unavailable")
         with open(image_path, "rb") as fh:
             b64 = base64.b64encode(fh.read()).decode("ascii")
+        mime = mimetypes.guess_type(image_path)[0] or "image/jpeg"
         body = self._post(
             "/chat/completions",
             {
@@ -221,7 +240,7 @@ class OpenAICompatProvider:
                         "role": "user",
                         "content": [
                             {"type": "text", "text": "Transcribe this exercise exactly as written."},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
                         ],
                     },
                 ],
@@ -230,7 +249,7 @@ class OpenAICompatProvider:
         )
         try:
             content = body["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as exc:
+        except (KeyError, IndexError, TypeError) as exc:
             raise LLMResponseError(f"unexpected vision response shape: {str(body)[:200]}") from exc
         return _tolerant_json(content)
 
@@ -244,8 +263,20 @@ class OpenAICompatProvider:
             raise LLMNotConfiguredError("EMBEDDING_MODEL is not set")
         body = self._post("/embeddings", {"model": self.cfg.embedding_model, "input": texts})
         try:
-            return [row["embedding"] for row in body["data"]]
-        except (KeyError, TypeError) as exc:
+            data = body["data"]
+            if any("index" in row for row in data):
+                data = sorted(data, key=lambda row: row["index"])
+                if [row["index"] for row in data] != list(range(len(texts))):
+                    raise ValueError("Invalid embedding indexes")
+            vectors = [row["embedding"] for row in data]
+            if len(vectors) != len(texts) or any(
+                not isinstance(vec, list) or not vec
+                or not all(isinstance(n, (int, float)) and math.isfinite(n) for n in vec)
+                for vec in vectors
+            ) or len({len(vec) for vec in vectors}) > 1:
+                raise ValueError("Invalid embedding vectors")
+            return vectors
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
             raise LLMResponseError(f"unexpected embeddings response shape: {str(body)[:200]}") from exc
 
 
@@ -260,18 +291,58 @@ class Misconception:
     knowledge_point: str
     confidence: float = 0.9
     blame: str = "matching"  # matching → the step that matches; first → the student's first transformation
+    explanation: str = ""
+    validate: Optional[Callable[[re.Match], bool]] = None
 
-    def search(self, text: str):
-        return re.search(self.pattern, text, flags=re.IGNORECASE)
+    def matches(self, text: str) -> bool:
+        match = re.search(self.pattern, text, flags=re.IGNORECASE)
+        return match is not None and (self.validate is None or self.validate(match))
+
+
+def _added_denominators(match: re.Match) -> bool:
+    a, b, c, d, numerator, denominator = map(int, match.groups())
+    return (
+        b > 0 and d > 0 and b != d
+        and numerator == a + c and denominator == b + d
+        and Fraction(a, b) + Fraction(c, d) != Fraction(numerator, denominator)
+    )
 
 
 MISCONCEPTIONS: List[Misconception] = [
-    Misconception("distributive_drop", r"\d+\s*\(\s*[a-z]\s*[+-]\s*\d+\s*\)\s*=\s*\d*[a-z]\s*[+-]\s*\d+", "conceptual", "ALG-7.3"),
-    Misconception("square_of_sum", r"\(\s*[a-z]\s*[+-]\s*[a-z]\s*\)\s*\^?\s*2\s*=\s*[a-z]\s*\^?\s*2\s*[+]\s*[a-z]\s*\^?\s*2", "conceptual", "ALG-8.3"),
-    Misconception("fraction_add_across", r"\d+\s*/\s*\d+\s*[+]\s*\d+\s*/\s*\d+\s*=\s*\d+\s*/\s*\d+", "conceptual", "ALG-7.4"),
-    Misconception("sign_drop_transpose", r"([a-z])\s*-\s*(\d+)\s*=\s*(\d+)[\s\S]{0,80}?\1\s*=\s*\3\s*-\s*\2", "careless", "ALG-7.2", 0.85, "first"),
-    Misconception("unit_not_converted", r"\d+\s*g\b[\s\S]{0,200}?/\s*\d+", "procedural", "PHY-9.2", 0.85, "first"),
-    Misconception("unbalanced_equation", r"[A-Z][a-z]?\d*\s*\+\s*[A-Z][a-z]?\d*\s*->\s*[A-Z]", "procedural", "CHE-8.1"),
+    Misconception(
+        "distributive_drop",
+        r"\b([2-9]|[1-9]\d+)\s*\(\s*([a-z])\s*([+-])\s*([1-9]\d*)\s*\)[^;]*;\s*\1\s*\2\s*\3\s*\4\s*=",
+        "conceptual", "ALG-7.3", blame="first",
+        explanation="括号外的系数乘进了含未知数的一项，也要乘进常数项。请检查去括号后的常数。",
+    ),
+    Misconception(
+        "square_of_sum",
+        r"\(\s*([a-z])\s*[+-]\s*([a-z])\s*\)\s*\^?\s*2\s*=\s*\1\s*\^?\s*2\s*\+\s*\2\s*\^?\s*2\s*$",
+        "conceptual", "ALG-8.3",
+        explanation="平方展开时遗漏了两个交叉相乘项。把平方写成两个相同括号相乘，再逐项展开。",
+    ),
+    Misconception(
+        "fraction_add_across",
+        r"^\s*(\d{1,12})\s*/\s*(\d{1,12})\s*\+\s*(\d{1,12})\s*/\s*(\d{1,12})\s*=\s*(\d{1,12})\s*/\s*(\d{1,12})\s*$",
+        "conceptual", "ALG-7.4", validate=_added_denominators,
+        explanation="这里分别相加了分子和分母。先把两个分数通分，分母保持相同，再相加分子。",
+    ),
+    Misconception(
+        "sign_drop_transpose",
+        r"([a-z])\s*-\s*(\d+)\s*=\s*(\d+)[^;]*;\s*\1\s*=\s*\3\s*-\s*\2\s*$",
+        "careless", "ALG-7.2", 0.85, "first",
+        explanation="消去等号左边的减项，需要在等式两边都加上同一个数。检查移项后的符号。",
+    ),
+    Misconception(
+        "unit_not_converted", r"\b(\d+(?:\.\d+)?)\s*g\b[^;]*;[^;]*/\s*\1(?=\s|$)",
+        "procedural", "PHY-9.2", 0.85, "first",
+        explanation="代入公式时仍使用了克数。先把质量换算成千克，再用力除以质量。",
+    ),
+    Misconception(
+        "unbalanced_equation", r"^\s*H2\s*\+\s*O2\s*(?:->|→)\s*H2O\s*$",
+        "procedural", "CHE-8.1",
+        explanation="反应式两边的氧原子数量不一致。调整化学式前的系数，再逐种元素核对。",
+    ),
 ]
 
 
@@ -297,31 +368,25 @@ class StubProvider:
                 "confidence": 1.0,
                 "explanation": "The work could not be read. Please upload a clearer, straight-on photo.",
             }
-        joined = " ; ".join([question] + list(steps))
-        for rule in MISCONCEPTIONS:
-            hit = rule.search(joined)
-            if hit:
-                broken = next((s for s in steps if re.search(rule.pattern, s, flags=re.IGNORECASE)), None)
-                if broken is None:
-                    if rule.blame == "first" and steps:
-                        broken = steps[0]
-                    elif rule.search(question) and steps:
-                        broken = steps[0]
-                    else:
-                        broken = steps[-1] if steps else None
-                return {
-                    "broken_step": broken,
-                    "error_type": rule.error_type,
-                    "knowledge_point_hint": rule.knowledge_point,
-                    "confidence": rule.confidence,
-                    "explanation": f"Rule baseline matched the '{rule.name}' pattern. A teacher should confirm.",
-                }
+        for i, written_step in enumerate(steps):
+            for rule in MISCONCEPTIONS:
+                if rule.blame == "first" and i != 0:
+                    continue
+                evidence = f"{question} ; {written_step}" if rule.blame == "first" else written_step
+                if rule.matches(evidence):
+                    return {
+                        "broken_step": written_step,
+                        "error_type": rule.error_type,
+                        "knowledge_point_hint": rule.knowledge_point,
+                        "confidence": rule.confidence,
+                        "explanation": rule.explanation,
+                    }
         return {
-            "broken_step": steps[-1] if steps else None,
+            "broken_step": None,
             "error_type": "procedural",
             "knowledge_point_hint": "",
             "confidence": 0.35,
-            "explanation": "No known misconception pattern matched; the last written step is flagged for a teacher's review.",
+            "explanation": "No known misconception matched. A teacher should check the working.",
         }
 
     def embed(self, texts: Iterable[str]) -> List[List[float]]:

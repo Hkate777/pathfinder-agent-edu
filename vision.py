@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from llm import VisionUnavailableError
+from llm import LLMResponseError, VisionUnavailableError
 
 STATUSES = ("ok", "ambiguous", "unreadable", "rotated")
 RETAKE_MESSAGE = "The photo could not be read reliably. Please retake it straight-on, well lit and uncropped."
@@ -41,13 +41,19 @@ def parse_photo(provider, image_path: str) -> ParseResult:
     status = str(raw.get("status", "unreadable")).lower()
     if status not in STATUSES:
         status = "unreadable"
+    question = raw.get("question") or ""
     steps = raw.get("steps") or []
     if isinstance(steps, str):
         steps = [steps]
+    if not isinstance(question, str) or not isinstance(steps, list) or not all(isinstance(s, str) for s in steps):
+        raise LLMResponseError("Photo transcript must contain question text and a list of written steps.")
+    steps = [s for s in steps if s.strip()]
+    if status == "ok" and (not question.strip() or not steps):
+        status = "ambiguous" if question.strip() or steps else "unreadable"
     return ParseResult(
         status=status,
-        question=str(raw.get("question", "") or ""),
-        steps=[str(s) for s in steps],
+        question=question,
+        steps=steps,
         notes=str(raw.get("notes", "") or ""),
     )
 
@@ -58,3 +64,11 @@ def from_text(question: str, steps: Optional[List[str]] = None) -> ParseResult:
     if not question and not steps:
         return ParseResult(status="unreadable", notes=RETAKE_MESSAGE)
     return ParseResult(status="ok", question=question, steps=steps)
+
+
+def from_sample(sample: Dict[str, Any]) -> ParseResult:
+    return ParseResult(
+        status=sample.get("parse_status", "ok" if sample.get("question") else "unreadable"),
+        question=sample.get("question", ""),
+        steps=sample.get("steps", []),
+    )

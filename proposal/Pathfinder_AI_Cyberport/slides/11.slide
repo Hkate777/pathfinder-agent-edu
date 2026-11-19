@@ -23,9 +23,9 @@
         <Box style={{ width: 440, background: '#162434', borderRadius: 10, padding: 24, flexDirection: 'column', gap: 16 }}>
             <Text style={{ fontSize: 18, color: '#F5A623', fontWeight: 'bold' }}>技术佐证材料</Text>
             {[
-                ['file-text', 'traces/', '3 条运行 + 2 份评估报告'],
-                ['check-circle', 'tests/test_pure.py', '23 项离线测试，零 API 消耗'],
-                ['file', 'samples/', '7 个带教师标注的样本'],
+                ['file-text', 'traces/', '4 条运行 + 3 份评估报告'],
+                ['check-circle', 'tests/', '44 项离线测试，零 API 消耗'],
+                ['file', 'samples/ + evaluation/', '7 样本 + 12 独立挑战用例'],
                 ['clipboard', 'AGENTS.md', '开发规范与 7 条不可逾越线'],
                 ['link', 'GitHub 仓库', '可运行代码 · 含测试与 trace'],
             ].map((it, idx) => (

@@ -17,7 +17,7 @@
 | 鼓励：可运行作品链接 | GitHub 仓库 https://github.com/Hkate777/pathfinder-agent-edu | ✅ |
 | 鼓励：过往项目经验 | 赛前 MVP 全链路 + 本复查记录的 7 处修复 | ✅ |
 | 鼓励：原创性与资源使用声明 | 区分赛前已有/赛期新增、模型/数据/依赖/合规逐项披露 | ✅ |
-| 鼓励：技术佐证材料 | traces/（3 运行+2 评估）、23 测试、7 样本、AGENTS.md | ✅ |
+| 鼓励：技术佐证材料 | traces/（4 运行+3 评估）、44 测试、7 样本 + 12 challenge 用例、AGENTS.md | ✅ |
 | 演示 DEMO（视频，可在线链接） | 待录制 2–4 分钟，README 已留链接位 | ⏳ 排期中 |
 | 团队 ≤ 5 人（不含指导老师） | 4 核心角色 + 可选指导老师，规模合规 | ✅ |
 | 评分：技术创新与安全 30 / 功能与体验 25 / 场景适配 25 / 商业与社会 20 | README 设「评审标准对照」逐项映射支撑证据 | ✅ |
@@ -27,7 +27,7 @@
 | 检查项 | 结论 |
 |---|---|
 | 单一管线原则：核心逻辑只在 `diagnose.py`，CLI / Streamlit 均为薄适配层 | ✅ |
-| 数据模型与 README 一致（students / mistakes / practice_log + KB JSON） | ✅ |
+| 数据模型与 README 一致（students / mistakes / practice_log / mistake_details / teacher_reviews / teacher_kp_override / submissions + KB JSON） | ✅ |
 | 错误类型闭集、阈值式 grounding、失败状态枚举化（ok/ambiguous/unreadable/rotated） | ✅ |
 | 设计决策均有"决策→为什么"对照表，失败与限制政策成文 | ✅ |
 | 开发规范成文（AGENTS.md 七条不可逾越线） | ✅ |
@@ -37,14 +37,17 @@
 
 | 验证项 | 结果 |
 |---|---|
-| 单元测试 | **23/23 通过**，零 API 消耗 |
-| 样本评估（7 个带标注样本） | 错误类型 7/7、知识点 7/7、断点定位 6/7（第 7 个为"读不清"，按设计不产出诊断） |
+| 单元测试 | **44/44 通过**，零 API 消耗 |
+| 样本评估（7 个开发样本） | 错误类型 6/6、知识点 6/6、断点定位 6/6（第 7 个为"读不清"，按设计不产出诊断） |
+| 独立挑战集（`--set challenge`，12 例） | 错误类型 6/8 (75%)、知识点 7/8 (88%)、路由 10/12 (83%)——暴露规则基线的泛化短板 |
 | CLI 连续两次诊断同一学生 | 第二次识别 `repeat_count=2`，14 天重复错误率正确算为 1.0 |
 | 图片路径但无 API key | 显式失败：`unreadable` + 重拍提示，不产诊断 |
 | Streamlit 应用 | 启动并返回 HTTP 200 |
-| trace 存档 | 3 条单次运行 + 2 份评估报告在 `traces/` |
+| trace 存档 | 4 条单次运行 + 3 份评估报告在 `traces/` |
 
-## 四、复查发现并修复的漏洞（7 处，均已修复 + 回归测试）
+## 四、复查发现并修复的漏洞（11 处，均已修复 + 回归测试）
+
+> 第 1–7 项为赛前复查修复；第 8–11 项为 2026-11-19 阶段 0 依据 `ASSESSMENT_AND_ROADMAP.md` 的审评修复。
 
 | # | 漏洞 | 影响 | 修复 |
 |---|---|---|---|
@@ -55,10 +58,14 @@
 | 5 | `build_path` 中一段无效 `continue` 死代码 | 可读性 | 删除 |
 | 6 | `diagnose.py` 打开两个 SQLite 连接但只关一个 | 连接泄漏 | 复用同一连接 |
 | 7 | `app.py` 冗余 import（load_kb / VisionUnavailableError / Gap / build_path / 函数内重复 import） | 可读性 | 清理 |
+| 8 | 转录缓存仅按 digest、失败状态永久禁用重拍按钮 | 切换学生串照；读不清时拍照流程死锁 | transcript 按 student+digest 隔离，失败可重拍；新增 AppTest 回归 |
+| 9 | 提交后「提交诊断」按钮消失；刷新重复入库 | 无法连续做题；heatmap/重复率被重复行污染 | 提交按钮常驻 + 「诊断下一题」；`submissions` 表按内容 hash 幂等 |
+| 10 | 未映射确认后仍无练习、教师无控件可指定知识点 | 复核闭环断裂，「请向教师补充章节」是死指令 | `teacher_kp_override` + 复核指定 KP，`effective_kp` 贯通画像/热力图/排程 |
+| 11 | `--set challenge` 读取不存在的 `evaluation/classroom_challenge.json` 崩溃 | 三套评测 1/3 不可用 | 补 12 例独立挑战集；三套全部可跑，报告泛化差距 |
 
 ## 五、已知限制（如实声明，非漏洞）
 
-1. 无 API key 时运行的是**离线规则基线**，规则照 `samples/` 编写；7/7 准确率验证的是管线接线，不是模型精度。README 与 PPT 均已显式声明。
+1. 无 API key 时运行的是**离线规则基线**，规则照 `samples/` 编写；6/6 准确率验证的是管线接线，不是模型精度。独立挑战集（`--set challenge`）给出 75%/88% 的泛化信号，暴露规则基线的局限。README 与 PPT 均应显式声明。
 2. 真实多模态模型的一致性评估（Cohen's κ）待 API key 到位后运行，数字届时替换现有表格。
 3. 100 张照片解析准确率评估、200 人试点为待办，均在评估计划中有明确指标与终点。
 4. ~~PPT 第 9 页 GitHub 链接占位~~ —— 已替换为新赛仓库 `github.com/Hkate777/pathfinder-agent-edu`（2026-11-19）。旧赛仓库为 `kk-garden-pathfinder`。

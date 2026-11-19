@@ -43,7 +43,7 @@ class Grounder:
         # score at 0.25 whenever no regex hits — so real providers score on embeddings alone.
         self.use_matchers = (provider.name == "offline-rule-baseline") if use_matchers is None else use_matchers
         self.texts = [self.node_text(n) for n in nodes]
-        self.vectors = provider.embed(self.texts)
+        self.vectors: Optional[List[List[float]]] = None
 
     @staticmethod
     def node_text(node: Dict[str, Any]) -> str:
@@ -66,6 +66,11 @@ class Grounder:
         return round(0.75 * ratio + 0.25 * sim, 4)
 
     def ground(self, text: str, hint: str = "") -> GroundResult:
+        method = "matchers+embeddings" if self.use_matchers else "embeddings"
+        if not self.nodes:
+            return GroundResult(None, 0.0, True, self.threshold, method)
+        if self.vectors is None:
+            self.vectors = self.provider.embed(self.texts)
         query = f"{text}\n{hint}".strip()
         query_vec = self.provider.embed([query])[0]
         scored = [
@@ -74,7 +79,6 @@ class Grounder:
         ]
         scored.sort(key=lambda pair: pair[0], reverse=True)
         best_score, best_node = scored[0]
-        method = "matchers+embeddings"
         return GroundResult(
             node=best_node if best_score >= self.threshold else None,
             score=best_score,

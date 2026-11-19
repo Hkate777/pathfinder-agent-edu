@@ -31,6 +31,7 @@ class Gap:
     days_since: int = 0
     cleared_count: int = 0
     items: List[Dict[str, str]] = field(default_factory=list)
+    completed_items: set[str] = field(default_factory=set)
 
     @property
     def risk_score(self) -> float:
@@ -57,13 +58,9 @@ def build_path(gaps: List[Gap], max_per_day: int = 3, today: Optional[date] = No
     ranked = rank_gaps(gaps)
     slots: Dict[int, List[Dict[str, object]]] = {d: [] for d in DAYS}
     for gap in ranked:
-        pending = [i for i in gap.items]
-        for offset, day in enumerate(DAYS):
-            if not pending:
-                break
-            if len(slots[day]) >= max_per_day:
+        for day, item in zip(DAYS, gap.items):
+            if len(slots[day]) >= max_per_day or item.get("id") in gap.completed_items:
                 continue
-            item = pending.pop(0)
             slots[day].append(
                 {
                     "knowledge_point": gap.knowledge_point,
@@ -71,6 +68,7 @@ def build_path(gaps: List[Gap], max_per_day: int = 3, today: Optional[date] = No
                     "item_id": item.get("id"),
                     "text": item.get("text"),
                     "difficulty": item.get("difficulty"),
+                    "solution": item.get("solution"),
                 }
             )
     def due_iso(day: int) -> str:

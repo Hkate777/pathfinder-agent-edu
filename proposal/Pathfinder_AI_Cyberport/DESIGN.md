@@ -102,7 +102,7 @@
 ### P11 原创性声明与佐证 · supporting/valley
 - 主标 "原创、透明、可复现"
 - 左：赛前已有 / 赛期新增 对照；模型、数据、依赖、合规四行
-- 右：佐证清单（traces / 23 测试 / 7 样本 / AGENTS.md）
+- 右：佐证清单（traces / 44 测试 / 7 样本 + 12 challenge / AGENTS.md）
 - anti_pattern: 禁止空泛合规口号
 
 ### P12 结尾 · hero/peak

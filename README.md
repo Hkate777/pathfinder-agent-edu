@@ -8,6 +8,31 @@
 
 **English summary** — Pathfinder AI turns a single photo of a wrong answer into a structured diagnosis: the exact broken reasoning step, an error-type label from a closed taxonomy, a syllabus-grounded knowledge point, retrieved graded practice, and a 7-day spaced review path. Teachers get a class-level gap heatmap. The agent abstains on unreadable work and reports unmapped knowledge points instead of hallucinating — a safety-first design aligned with the education track.
 
+## 本地工作台
+
+```bash
+python -m pip install -r requirements.txt
+python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+打开 [本地工作台](http://localhost:8501)。无 API 密钥时可使用内置示例和手动录入，界面会标注「离线规则基线」。
+
+- **诊断台**展示原始解题步骤、定位到的断点、课程知识点及结果来源。照片先转录，核对后再提交诊断。
+- **复习路径**从最近的可练诊断或教师确认起算，按薄弱点优先级推荐第 1、3、7 天的题库练习。到期后可对照参考解法并记录掌握情况，每天最多记录配置数量的不同练习。
+- **错题档案**保存诊断结果、14 天重复错误率与教师意见。**班级学情**按班级和错误类型显示热力图。**复核队列**支持确认或退回，处理意见会追加到原记录。
+
+在侧栏「学生资料」可选择学生编号并为当前学生设置班级。学生与教师入口用于本地演示，面向实际学校部署时需要独立的账号和权限层。
+
+要启用照片转录，复制 `.env.example` 为 `.env`，填写兼容端点、模型及密钥，并设置 `PATHFINDER_OFFLINE=0` 后重启。照片转录会将图片发送给配置的视觉服务。成功入库的照片保存在 SQLite 数据库所在目录的 `uploads/` 下。
+
+```bash
+python -m unittest discover -s tests
+python diagnose.py --sample samples/alg_distributive.json --offline --no-save
+python eval.py --set samples
+# 启用在线模型后，可评估已转录样本的诊断和知识点匹配
+python eval.py --set samples --online
+```
+
 ---
 
 ## 参赛信息速览
@@ -83,7 +108,7 @@ flowchart TD
 
 一道代数错题：`2(x+3) = 4x - 6`，学生写成 `2x + 3 = 4x - 6` → `3 = 2x - 6` → `x = 4.5`。
 
-系统输出的不是「正确答案是 3」，而是一份结构化诊断（真实运行输出）：
+系统把断点定位在第一步去括号，并输出结构化诊断（历史运行记录）：
 
 ```json
 {
@@ -120,9 +145,10 @@ flowchart TD
 | `llm.py` | 可插拔推理层：`OpenAICompatProvider`（chat+vision+embedding）与 `StubProvider`（离线规则基线）；每类失败都有独立异常类 |
 | `grounding.py` | 课程知识点检索：正则匹配 + embedding 相似度，带阈值判定，低于阈值一律 `unmapped` |
 | `schedule.py` | 风险排序 + 7 天间隔排程（day 1/3/7），每天 ≤ 3 题 |
-| `store.py` | SQLite：错题 append-only、漏洞画像重算、练习日志、14 天重复错误率、班级热力图 |
+| `store.py` | SQLite：追加错题和复核意见、漏洞画像重算、练习日志、14 天重复错误率、班级热力图 |
+| `ui.py` / `ui.css` | 工作台的展示组件与样式 |
 | `knowledge_base/` | 10 个课程知识点节点（数学 6 / 物理 2 / 化学 1 / 英语 1），每节点 3 道分级题 + 匹配规则 |
-| `eval.py` / `tests/` | 评估框架 + 23 项离线单元测试（零 API 消耗） |
+| `eval.py` / `tests/` | 离线评估、可选在线评估、诊断与工作台回归测试 |
 
 ## 3.2 核心工作流
 
@@ -167,7 +193,7 @@ flowchart TD
 
 ## 4.2 落地路径
 
-1. **阶段一（现状）**：MVP 全链路跑通，10 节点知识库、23 项测试、7 样本评估与 trace 存档。
+1. **阶段一（现状）**：MVP 全链路跑通，10 节点知识库、44 项测试、7 样本评估与 trace 存档。
 2. **阶段二**：接入真实多模态模型，完成 100 张照片解析准确率评估 + 2 位教师独立标注的 Cohen's κ 一致性研究。
 3. **阶段三**：合作学校 200 人试点（实验班用 Pathfinder 路径 vs 对照班常规复习），主终点为 14 天重复错误率，记录教师工时。
 4. **阶段四**：课程本地化（对接香港 DSE / 本地课程与中英双语）、平台化部署、商业化与创业孵化路径。
@@ -181,8 +207,9 @@ flowchart TD
 pip install -r requirements.txt
 cp .env.example .env          # Windows: copy .env.example .env
 python diagnose.py --sample samples/alg_distributive.json --trace   # 无 key 也可跑
-python -m unittest discover -s tests                                 # 23 项，零 API 消耗
-python eval.py --set samples --save                                  # 评估报告 → traces/
+python -m unittest discover -s tests                                 # 44 项离线测试，零 API 消耗
+python eval.py --set samples --save                                  # 开发样本评测（规则同源）
+python eval.py --set challenge                                       # 独立挑战集（探测泛化差距）
 streamlit run app.py                                                 # 学生 + 教师界面
 ```
 
@@ -194,7 +221,7 @@ streamlit run app.py                                                 # 学生 + 
 
 ## 5.1 过往项目经验
 
-本项目原型在赛前已完整建成并用于另一项 AI 应用赛事，具备可验证的落地基础：全链路管线、10 节点课程知识库、23 项离线测试、7 个带教师标注的样本、5 份存档 trace；复查中定位并修复 7 处工程漏洞（详见 [REVIEW.md](REVIEW.md)）。团队具备全栈原型、LLM/RAG 工程与教育场景对接能力。
+本项目原型在赛前已完整建成并用于另一项 AI 应用赛事，具备可验证的落地基础：全链路管线、10 节点课程知识库、44 项离线测试、7 个开发样本 + 12 个独立 challenge 用例、7 份存档 trace；复查中定位并修复 7 处工程漏洞及阶段 0 的 4 个 UI 阻断项（详见 [REVIEW.md](REVIEW.md) 与 [ASSESSMENT_AND_ROADMAP.md](ASSESSMENT_AND_ROADMAP.md)）。团队具备全栈原型、LLM/RAG 工程与教育场景对接能力。
 
 ## 5.2 原创性与资源使用声明
 
@@ -205,13 +232,14 @@ streamlit run app.py                                                 # 学生 + 
 | 模型 | 用户自备 OpenAI 兼容端点（VISION/TEXT/EMBEDDING 模型可配置）；无 key 时使用自研确定性规则基线，且明确标注 |
 | 数据 | 7 个自编/教师标注样本 + 自编 10 节点课程知识库；仓库内无学生真实个人数据 |
 | 代码与依赖 | 核心代码原创；依赖 streamlit / requests / pillow / python-dotenv；无外部训练数据、无第三方接管服务 |
-| 合规 | 密钥仅存本地 `.env`（git-ignore）；学生照片本地存储、随账号存续、未经同意不用于训练 |
+| 数据存储 | 密钥来自本地 `.env` 或环境变量。已保存的照片保留在本机，转录请求会发送给配置的视觉服务 |
 
 ## 5.3 技术佐证材料
 
-- `traces/`：3 条单次运行 + 2 份评估报告（真实存盘）
-- `tests/test_pure.py`：23 项离线测试，零 API 消耗
-- `samples/`：7 个带教师标注的样本（6 个真实错题 + 1 个不可读）
+- `traces/`：4 条单次运行 + 3 份评估报告（真实存盘）
+- `tests/`：44 项离线单元与工作台回归测试，零 API 消耗
+- `samples/`：7 个开发样本（6 个错题 + 1 个不可读；规则据此编写）
+- `evaluation/classroom_challenge.json`：12 个独立编写的挑战用例（无独立教师校验，用于探测泛化差距）
 - `AGENTS.md`：开发规范与 7 条不可逾越线
 
 ---
@@ -234,10 +262,11 @@ streamlit run app.py                                                 # 学生 + 
 | `20261031_145853_alg_distributive` | `2(x+3)=4x-6` → `2x+3=4x-6` → `x=4.5` | conceptual | ALG-7.3 | 0.8621 | 定位断点，3 题排程 day 1/3/7 |
 | `20261031_145853_phy_unit_conversion` | 500g、10N，`a=F/m=10/500` | procedural | PHY-9.2 | 0.5856 | 单位换算被标记，路径生成 |
 | `20261031_145854_unreadable_photo` | 空 / 不可读输入 | unreadable | — | — | **不产诊断**，返回重拍请求 |
-| `eval_20261031_145842` | 全部 7 样本 | 类型 7/7、知识点 7/7 | — | — | 断点定位 6/7，1 例标记复核 |
-| `python -m unittest discover -s tests` | 23 项离线测试 | — | — | — | 全部通过，零 API 消耗 |
+| `eval_20261031_145842` | 全部 7 样本 | 类型 6/6、知识点 6/6 | — | — | 断点定位 6/6，1 例按设计重拍 |
+| `python -m unittest discover -s tests` | 44 项离线测试 | — | — | — | 全部通过，零 API 消耗 |
+| `python eval.py --set challenge` | 12 个独立挑战用例 | 6/8 (75%) | 7/8 (88%) | — | 断步 6/8，路由 10/12；暴露规则基线的泛化短板 |
 
-> **引用前必读**：以上数字来自 **离线规则基线**（`offline-rule-baseline`），其规则针对 `samples/` 编写。7/7 的一致性验证的是**管线接线**（解析、诊断路由、grounding 阈值、排程、持久化）是否按设计工作，**不是模型精度**。真实多模态模型的一致性评估（Cohen's κ）待 API key 到位后运行，届时数字将替换本表。
+> **引用前必读**：以上数字来自 **离线规则基线**（`offline-rule-baseline`），其规则针对 `samples/` 编写。`samples` 套件的 6/6 验证的是**管线接线**（解析、诊断路由、grounding 阈值、排程、持久化）是否按设计工作，**不是模型精度**；`challenge` 是独立编写的留出用例（无独立教师校验），其 75%/88% 才是更接近泛化能力的诚实信号。真实多模态模型的一致性评估（Cohen's κ）待 API key 到位后运行，届时数字将替换本表。
 
 ---
 
@@ -248,6 +277,8 @@ streamlit run app.py                                                 # 学生 + 
 | `students` | `id`, `grade`, `class_id` | cohort 与看板分组 |
 | `mistakes` | `broken_step`, `error_type`, `knowledge_point_id`, `confidence`, `grounded`, `provider` | 原始证据，append-only |
 | `practice_log` | `mistake_id`, `item_id`, `due_day`, `result` | 掌握状态，驱动排程 |
+| `mistake_details` | `mistake_id`, `explanation`, `grounding_score`, `needs_review`, `source` | 保存新增诊断证据与输入来源 |
+| `teacher_reviews` | `mistake_id`, `decision`, `note`, `reviewed_at` | 保留确认或退回意见 |
 | `knowledge_points.json` | 标题、关键词、讲解、3 道分级题 | 课程知识图谱（10 节点） |
 
 主指标：**重复错误率**——14 天内同一知识点再次作为新错题出现的比例（`store.repeat_error_rate`，已单测）。辅助指标：教师诊断耗时、路径完成率、学生信心。
@@ -256,7 +287,7 @@ streamlit run app.py                                                 # 学生 + 
 
 # 九、失败与限制政策
 
-系统绝不静默降级。鉴权失败、配额耗尽、网络错误、响应格式错误各自抛出独立、可行动的异常。不可读照片、低置信度诊断、未映射知识点分别产生专属状态——重拍请求、「需教师检查」、「大纲中暂无此章节」。编造知识点或练习题被视为最严重的失败模式，因为一个自信的错误路径，对学生的伤害大于没有路径。学生照片本地存储、随账号存续、未经明确同意不用于训练。
+鉴权失败、配额耗尽、网络错误和响应格式错误会显示对应的处理提示。不可读照片请求重拍，找不到匹配知识点时显示「暂未映射」。只有能引用原文的断点才会高亮。低置信度、缺少可靠断点或未映射的记录进入复核队列，低置信度或缺少可靠断点的诊断经教师确认后才会启用已映射的练习。
 
 ---
 
@@ -267,7 +298,7 @@ streamlit run app.py                                                 # 学生 + 
 - [x] 全链路实现：解析 → 诊断 → grounding → 出题 → 排程 → 存储
 - [x] 课程知识库（10 节点 / 30 道分级题）+ 离线匹配器
 - [x] 学生端与教师端界面：上传、诊断卡、7 天路径、画像、班级热力图
-- [x] 离线测试套件（23 项）与评估框架（含存档 trace）
+- [x] 离线单元测试、工作台回归测试与样本评估（含存档 trace）
 - [ ] **真实多模态模型运行** —— 待 API key，替换本页基线数字
 - [ ] 100 张照片解析准确率 + 教师诊断一致性（Cohen's κ）研究
 - [ ] 200 人试点（合作学校）

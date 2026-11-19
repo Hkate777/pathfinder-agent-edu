@@ -10,10 +10,11 @@
       "keywords": ["like terms", "combine", "collect", "coefficient", "合并同类项"],
       "prerequisites": [],
       "remediation": "Only terms with the same variable part may be added; add their coefficients, keep the variable part unchanged.",
+      "remediation_zh": "变量和指数都相同的项才能合并。相加减的只有系数，变量部分保持原样。",
       "items": [
-        {"id": "ALG-7.1 #1", "difficulty": "easy", "text": "Simplify 3x + 5x - 2x"},
-        {"id": "ALG-7.1 #2", "difficulty": "medium", "text": "Simplify 4a + 3b - a + 2b"},
-        {"id": "ALG-7.1 #3", "difficulty": "applied", "text": "A rectangle has sides (2x+3) and (x+1). Write and simplify its perimeter."}
+        {"id": "ALG-7.1 #1", "difficulty": "easy", "text": "Simplify 3x + 5x - 2x", "solution": "(3 + 5 − 2)x = 6x。"},
+        {"id": "ALG-7.1 #2", "difficulty": "medium", "text": "Simplify 4a + 3b - a + 2b", "solution": "(4 − 1)a + (3 + 2)b = 3a + 5b。"},
+        {"id": "ALG-7.1 #3", "difficulty": "applied", "text": "A rectangle has sides (2x+3) and (x+1). Write and simplify its perimeter.", "solution": "周长 = 2[(2x + 3) + (x + 1)] = 6x + 8。"}
       ]
     },
     {
@@ -24,10 +25,11 @@
       "keywords": ["linear equation", "solve", "unknown", "balance", "移项", "一元一次方程"],
       "prerequisites": ["ALG-7.1"],
       "remediation": "Move variable terms to one side and constants to the other, changing the sign each time a term crosses the equals sign.",
+      "remediation_zh": "每一步都对等式两边做相同的运算。把未知数集中到一边，最后除以它的系数。",
       "items": [
-        {"id": "ALG-7.2 #1", "difficulty": "easy", "text": "Solve x - 4 = 10"},
-        {"id": "ALG-7.2 #2", "difficulty": "medium", "text": "Solve 3x - 7 = 2x + 5"},
-        {"id": "ALG-7.2 #3", "difficulty": "applied", "text": "Three times a number, minus 7, equals 20. Find the number with an equation."}
+        {"id": "ALG-7.2 #1", "difficulty": "easy", "text": "Solve x - 4 = 10", "solution": "两边加 4，得到 x = 14。"},
+        {"id": "ALG-7.2 #2", "difficulty": "medium", "text": "Solve 3x - 7 = 2x + 5", "solution": "两边减 2x、再加 7，得到 x = 12。"},
+        {"id": "ALG-7.2 #3", "difficulty": "applied", "text": "Three times a number, minus 7, equals 20. Find the number with an equation.", "solution": "设这个数为 x。由 3x − 7 = 20 得 3x = 27，所以 x = 9。"}
       ]
     },
     {
@@ -38,10 +40,11 @@
       "keywords": ["distributive", "bracket", "expand", "negative coefficient", "分配律", "去括号"],
       "prerequisites": ["ALG-7.1"],
       "remediation": "The factor multiplies every term inside the bracket, carrying its sign: a(b+c) = ab + ac, and a(b-c) = ab - ac.",
+      "remediation_zh": "用括号外的系数乘括号内的每一项，并带上符号。a(b − c) = ab − ac。",
       "items": [
-        {"id": "ALG-7.3 #1", "difficulty": "easy", "text": "Expand 2(x+3)"},
-        {"id": "ALG-7.3 #2", "difficulty": "medium", "text": "Expand and solve 2(x+3) = 4x - 6"},
-        {"id": "ALG-7.3 #3", "difficulty": "applied", "text": "Expand -3(2y-5) and use it to solve -3(2y-5) = 9"}
+        {"id": "ALG-7.3 #1", "difficulty": "easy", "text": "Expand 2(x+3)", "solution": "2(x + 3) = 2x + 6。"},
+        {"id": "ALG-7.3 #2", "difficulty": "medium", "text": "Expand and solve 2(x+3) = 4x - 6", "solution": "展开得 2x + 6 = 4x − 6。整理得 2x = 12，所以 x = 6。"},
+        {"id": "ALG-7.3 #3", "difficulty": "applied", "text": "Expand -3(2y-5) and use it to solve -3(2y-5) = 9", "solution": "展开得 −6y + 15 = 9。两边减 15，得到 −6y = −6，所以 y = 1。"}
       ]
     },
     {
@@ -52,10 +55,11 @@
       "keywords": ["fraction", "denominator", "common denominator", "add", "分数", "通分"],
       "prerequisites": [],
       "remediation": "Rewrite both fractions over a common denominator before adding; never add denominators directly.",
+      "remediation_zh": "先把两个分数化成相同的分母，只对分子做加减，最后约分。",
       "items": [
-        {"id": "ALG-7.4 #1", "difficulty": "easy", "text": "Compute 1/2 + 1/3"},
-        {"id": "ALG-7.4 #2", "difficulty": "medium", "text": "Compute 3/4 - 1/6"},
-        {"id": "ALG-7.4 #3", "difficulty": "applied", "text": "A recipe needs 1/2 cup and 1/3 cup of two liquids. How much in total?"}
+        {"id": "ALG-7.4 #1", "difficulty": "easy", "text": "Compute 1/2 + 1/3", "solution": "通分得 3/6 + 2/6 = 5/6。"},
+        {"id": "ALG-7.4 #2", "difficulty": "medium", "text": "Compute 3/4 - 1/6", "solution": "通分得 9/12 − 2/12 = 7/12。"},
+        {"id": "ALG-7.4 #3", "difficulty": "applied", "text": "A recipe needs 1/2 cup and 1/3 cup of two liquids. How much in total?", "solution": "通分得 3/6 + 2/6 = 5/6 杯。"}
       ]
     },
     {
@@ -66,10 +70,11 @@
       "keywords": ["exponent", "power", "index", "multiply powers", "指数"],
       "prerequisites": ["ALG-7.1"],
       "remediation": "a^m * a^n = a^(m+n); (a^m)^n = a^(mn). Bases must match before exponents are combined.",
+      "remediation_zh": "同底数的幂相乘，指数相加。幂的乘方，指数相乘。底数不同的指数不能直接合并。",
       "items": [
-        {"id": "ALG-8.1 #1", "difficulty": "easy", "text": "Simplify x^2 * x^5"},
-        {"id": "ALG-8.1 #2", "difficulty": "medium", "text": "Simplify (2x^3)^2"},
-        {"id": "ALG-8.1 #3", "difficulty": "applied", "text": "Simplify (3a^2 b)(4a b^3)"}
+        {"id": "ALG-8.1 #1", "difficulty": "easy", "text": "Simplify x^2 * x^5", "solution": "底数相同，指数相加，得到 x^7。"},
+        {"id": "ALG-8.1 #2", "difficulty": "medium", "text": "Simplify (2x^3)^2", "solution": "系数平方为 4，指数相乘为 3 × 2，得到 4x^6。"},
+        {"id": "ALG-8.1 #3", "difficulty": "applied", "text": "Simplify (3a^2 b)(4a b^3)", "solution": "系数相乘，同底数的指数相加，得到 12a^3b^4。"}
       ]
     },
     {
@@ -80,10 +85,11 @@
       "keywords": ["square of a sum", "perfect square", "identity", "expand", "(a+b)^2", "完全平方"],
       "prerequisites": ["ALG-7.3"],
       "remediation": "(a+b)^2 = a^2 + 2ab + b^2. The cross term 2ab is the part almost always dropped.",
+      "remediation_zh": "先把平方写成两组括号相乘。用 (a + b)^2 = a^2 + 2ab + b^2 检查交叉项。",
       "items": [
-        {"id": "ALG-8.3 #1", "difficulty": "easy", "text": "Expand (x+3)^2"},
-        {"id": "ALG-8.3 #2", "difficulty": "medium", "text": "Expand (2a-5)^2"},
-        {"id": "ALG-8.3 #3", "difficulty": "applied", "text": "A square of side (x+4): express and expand its area."}
+        {"id": "ALG-8.3 #1", "difficulty": "easy", "text": "Expand (x+3)^2", "solution": "(x + 3)^2 = x^2 + 6x + 9。"},
+        {"id": "ALG-8.3 #2", "difficulty": "medium", "text": "Expand (2a-5)^2", "solution": "(2a − 5)^2 = 4a^2 − 20a + 25。"},
+        {"id": "ALG-8.3 #3", "difficulty": "applied", "text": "A square of side (x+4): express and expand its area.", "solution": "面积 = (x + 4)^2 = x^2 + 8x + 16。"}
       ]
     },
     {
@@ -94,10 +100,11 @@
       "keywords": ["newton", "force", "mass", "acceleration", "F=ma", "牛顿第二定律"],
       "prerequisites": ["PHY-9.2"],
       "remediation": "Identify force, mass and acceleration in SI units first, then substitute into F = ma.",
+      "remediation_zh": "识别合力、质量与加速度，先统一成国际单位，再代入 F = ma。",
       "items": [
-        {"id": "PHY-9.1 #1", "difficulty": "easy", "text": "Find F when m = 2 kg and a = 3 m/s^2"},
-        {"id": "PHY-9.1 #2", "difficulty": "medium", "text": "A 5 kg block accelerates at 1.2 m/s^2. Find the net force."},
-        {"id": "PHY-9.1 #3", "difficulty": "applied", "text": "A 1200 kg car accelerates from rest to 20 m/s in 8 s. Find the average net force."}
+        {"id": "PHY-9.1 #1", "difficulty": "easy", "text": "Find F when m = 2 kg and a = 3 m/s^2", "solution": "F = ma = 2 × 3 = 6 N。"},
+        {"id": "PHY-9.1 #2", "difficulty": "medium", "text": "A 5 kg block accelerates at 1.2 m/s^2. Find the net force.", "solution": "合力 F = 5 × 1.2 = 6 N。"},
+        {"id": "PHY-9.1 #3", "difficulty": "applied", "text": "A 1200 kg car accelerates from rest to 20 m/s in 8 s. Find the average net force.", "solution": "平均加速度为 (20 − 0) / 8 = 2.5 m/s²，平均合力为 1200 × 2.5 = 3000 N。"}
       ]
     },
     {
@@ -108,10 +115,11 @@
       "keywords": ["unit", "convert", "kg", "gram", "km/h", "m/s", "单位换算"],
       "prerequisites": [],
       "remediation": "Convert every quantity to SI before substituting: grams to kilograms, km/h to m/s (divide by 3.6).",
+      "remediation_zh": "克换成千克时除以 1000，千米每小时换成米每秒时除以 3.6。",
       "items": [
-        {"id": "PHY-9.2 #1", "difficulty": "easy", "text": "Convert 500 g to kg"},
-        {"id": "PHY-9.2 #2", "difficulty": "medium", "text": "Convert 72 km/h to m/s"},
-        {"id": "PHY-9.2 #3", "difficulty": "applied", "text": "A 500 g mass is pushed with 10 N. Find its acceleration in SI units."}
+        {"id": "PHY-9.2 #1", "difficulty": "easy", "text": "Convert 500 g to kg", "solution": "1 kg = 1000 g，所以 500 g = 0.5 kg。"},
+        {"id": "PHY-9.2 #2", "difficulty": "medium", "text": "Convert 72 km/h to m/s", "solution": "速度从 km/h 换算到 m/s 时除以 3.6，得到 72 / 3.6 = 20 m/s。"},
+        {"id": "PHY-9.2 #3", "difficulty": "applied", "text": "A 500 g mass is pushed with 10 N. Find its acceleration in SI units.", "solution": "先换算 500 g = 0.5 kg，再求 a = F/m = 10 / 0.5 = 20 m/s²。"}
       ]
     },
     {
@@ -122,10 +130,11 @@
       "keywords": ["balance", "equation", "coefficient", "atoms", "reactant", "配平"],
       "prerequisites": [],
       "remediation": "Count atoms of each element on both sides, then adjust coefficients — never subscripts — until both sides match.",
+      "remediation_zh": "逐种清点反应式两边的原子数。通过调整化学式前的系数让数量相同，保留化学式的下标。",
       "items": [
-        {"id": "CHE-8.1 #1", "difficulty": "easy", "text": "Balance H2 + O2 -> H2O"},
-        {"id": "CHE-8.1 #2", "difficulty": "medium", "text": "Balance Fe + O2 -> Fe2O3"},
-        {"id": "CHE-8.1 #3", "difficulty": "applied", "text": "Balance CH4 + O2 -> CO2 + H2O and state how many O2 molecules are needed."}
+        {"id": "CHE-8.1 #1", "difficulty": "easy", "text": "Balance H2 + O2 -> H2O", "solution": "2H₂ + O₂ → 2H₂O。两边各有 4 个氢原子和 2 个氧原子。"},
+        {"id": "CHE-8.1 #2", "difficulty": "medium", "text": "Balance Fe + O2 -> Fe2O3", "solution": "4Fe + 3O₂ → 2Fe₂O₃。两边各有 4 个铁原子和 6 个氧原子。"},
+        {"id": "CHE-8.1 #3", "difficulty": "applied", "text": "Balance CH4 + O2 -> CO2 + H2O and state how many O2 molecules are needed.", "solution": "CH₄ + 2O₂ → CO₂ + 2H₂O。每 1 个 CH₄ 分子需要 2 个 O₂ 分子。"}
       ]
     },
     {
@@ -136,10 +145,11 @@
       "keywords": ["subject", "verb", "agreement", "singular", "plural", "主谓一致"],
       "prerequisites": [],
       "remediation": "Find the head of the subject first; modifiers between subject and verb do not change the number.",
+      "remediation_zh": "先找主语的中心词，根据它的单复数选择动词形式。修饰语里的名词不会改变主语的数。",
       "items": [
-        {"id": "ENG-7.1 #1", "difficulty": "easy", "text": "She (go/goes) to school by bus."},
-        {"id": "ENG-7.1 #2", "difficulty": "medium", "text": "The list of items (is/are) on the desk."},
-        {"id": "ENG-7.1 #3", "difficulty": "applied", "text": "Correct: Each of the students have submitted the report."}
+        {"id": "ENG-7.1 #1", "difficulty": "easy", "text": "She (go/goes) to school by bus.", "solution": "She goes to school by bus. 主语 She 是第三人称单数。"},
+        {"id": "ENG-7.1 #2", "difficulty": "medium", "text": "The list of items (is/are) on the desk.", "solution": "The list of items is on the desk. 主语的中心词 list 为单数。"},
+        {"id": "ENG-7.1 #3", "difficulty": "applied", "text": "Correct: Each of the students have submitted the report.", "solution": "Each of the students has submitted the report. 主语的中心词 Each 为单数。"}
       ]
     }
   ]
